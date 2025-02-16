@@ -7,9 +7,13 @@ public interface ICanDevice : IDisposable
 {
     DeviceType DeviceType { get; }
     bool IsConnected { get; }
-    int ListenWaiteTime { get; }
+    int PollingTimeout { get; }
 
-    void Listen(Action<CanObject> onChange, uint length = 1, int waitTime = 0);
+    event Action<ICanDevice>? ConnectionLost;
+
+    void RegisterListener(Action<CanObject> onChange, uint length = 1, int waitTime = 0);
+
+    void UnregisterListener(Action<CanObject> onChange, uint length = 1, int waitTime = 0);
 
     bool TryConnect();
 

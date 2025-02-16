@@ -20,7 +20,7 @@ public static class CanDeviceAsyncExtensions
         return await Task.Run(canDevice.ReadErrorInfo, cancellationToken);
     }
 
-    public static async Task<(uint id, byte[] message)> ReadMessageAsync(this ICanDevice canDevice, uint length = 1, int waitTime = 0, CancellationToken cancellationToken = default)
+    public static async Task<CanObject> ReadMessageAsync(this ICanDevice canDevice, uint length = 1, int waitTime = 0, CancellationToken cancellationToken = default)
     {
         return await Task.Run(() => canDevice.ReadMessage(length, waitTime), cancellationToken);
     }

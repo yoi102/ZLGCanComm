@@ -26,7 +26,7 @@ public abstract class BaseDevice : ICanDevice
     public bool IsConnected { get; protected set; }
     public abstract uint UintDeviceType { get; }
 
-    public int ListenWaiteTime { get; set; } = 100;
+    public int PollingTimeout { get; set; } = 100;
 
     public virtual CanControllerStatus ReadCanControllerStatus()
     {
@@ -209,9 +209,26 @@ public abstract class BaseDevice : ICanDevice
         ConnectionLost?.Invoke(this);
     }
 
-    public virtual void Listen(Action<CanObject> onChange, uint length = 1, int waitTime = 0)
+    public virtual void RegisterListener(Action<CanObject> onChange, uint length = 1, int waitTime = 0)
     {
-        ListenerService.ListenDevice(this, onChange, length, waitTime);
+        var record = new ListenerObjectRecord()
+        {
+            Device = this,
+            Length = length,
+            WaitTime = waitTime
+        };
+        ListenerService.RegisterListener(record, onChange);
+    }
+
+    public virtual void UnregisterListener(Action<CanObject> onChange, uint length = 1, int waitTime = 0)
+    {
+        var record = new ListenerObjectRecord()
+        {
+            Device = this,
+            Length = length,
+            WaitTime = waitTime
+        };
+        ListenerService.UnregisterListener(record, onChange);
     }
 
     public void Dispose()

@@ -4,10 +4,10 @@ using ZLGCan.Structs;
 
 namespace ZLGCan;
 
-internal record ListenerRecord
+internal record ListenerTaskRecord
 {
     public Task? Task { get; init; }
-    public List<Action<CanObject>> CallBacks { get; init; } = new();
+    public HashSet<Action<CanObject>> CallBacks { get; init; } = new();
     public required CancellationTokenSource CancellationTokenSource { get; init; }
     public CanObject? OldValue { get; set; }
 
@@ -26,16 +26,22 @@ internal record ListenerRecord
         }
     }
 }
+internal record ListenerObjectRecord
+{
+    public required BaseDevice Device { get; init; }
+    public required uint Length { get; init; }
+    public required int WaitTime { get; init; }
+}
 
 internal class ListenerService
 {
-    private static readonly ConcurrentDictionary<BaseDevice, ListenerRecord> listeners = new();
+    private static readonly ConcurrentDictionary<ListenerObjectRecord, ListenerTaskRecord> listeners = new();
     private static readonly SynchronizationContext? _syncContext = SynchronizationContext.Current;
     private static readonly object _lock = new object();
 
-    public static void ListenDevice(BaseDevice device, Action<CanObject> onChange, uint length = 1, int waitTime = 0)
+    public static void RegisterListener(ListenerObjectRecord listenerObjectRecord, Action<CanObject> onChange)
     {
-        if (listeners.TryGetValue(device, out var existingListener))
+        if (listeners.TryGetValue(listenerObjectRecord, out var existingListener))
         {
             existingListener.CallBacks.Add(onChange);
             return;
@@ -46,22 +52,22 @@ internal class ListenerService
 
         var task = Task.Run(async () =>
         {
-            await ReadLoopAsync(device, token, length, waitTime);
+            await ReadLoopAsync(listenerObjectRecord, token);
         }, token);
 
-        var newRecord = new ListenerRecord
+        var newRecord = new ListenerTaskRecord
         {
             Task = task,
             CancellationTokenSource = cts,
         };
 
-        listeners[device] = newRecord;
+        listeners[listenerObjectRecord] = newRecord;
     }
 
     /// <summary>
     /// 读取设备端口数据并检测变化
     /// </summary>
-    private static async Task ReadLoopAsync(BaseDevice device, CancellationToken token, uint length = 1, int waitTime = 0)
+    private static async Task ReadLoopAsync(ListenerObjectRecord listenerObjectRecord, CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
@@ -70,18 +76,22 @@ internal class ListenerService
             CanObject result;
             try
             {
-                result = device.ReadMessage(length, waitTime); // 读取端口数据
+                result = listenerObjectRecord.Device.ReadMessage(listenerObjectRecord.Length, listenerObjectRecord.WaitTime); // 读取端口数据
             }
             catch (CanDeviceOperationException)
             {
-                StopListen(device);
+                StopListen(listenerObjectRecord.Device);
+                break;
+            }
+            catch (InvalidOperationException)
+            {
                 break;
             }
 
-            if (listeners.TryGetValue(device, out var listener))
+            if (listeners.TryGetValue(listenerObjectRecord, out var listener))
             {
                 // 仅当值变化时触发回调
-                if (AreMessagesEqual(listener.OldValue, result))
+                if (listener.OldValue == result)
                 {
                     listener.OldValue = result;
                     listener.InvokeAll(result, _syncContext);
@@ -90,33 +100,34 @@ internal class ListenerService
         }
     }
 
-    public static bool AreMessagesEqual(CanObject? canObject1, CanObject? canObject2)
+    public static void UnregisterListener(ListenerObjectRecord listenerObjectRecord, Action<CanObject> callBack)
     {
-        if (canObject1 == null && canObject2 == null)
+        if (!listeners.TryGetValue(listenerObjectRecord, out var removedListener))
+            return;
+        if (removedListener.CallBacks.Count <= 1)
         {
-            return true;
+            listeners.Remove(listenerObjectRecord, out _);
         }
-        if (canObject1 == null || canObject2 == null)
+        else
         {
-            return false;
+            removedListener.CallBacks.Remove(callBack);
         }
-
-        return canObject1 == canObject2;
-
     }
 
     public static void StopListen(BaseDevice device)
     {
         lock (_lock)
         {
-            device.OnConnectionLost();
-            if (listeners.TryRemove(device, out var removedListener))
+            var pairs = listeners.Where(x => x.Key.Device == device)
+                                                                             .ToArray();
+            if (pairs.Any())
             {
-                removedListener.CancellationTokenSource.Cancel();
+                device.OnConnectionLost();
             }
-            foreach (var item in listeners.Values)
+            foreach (var item in pairs)
             {
-                item.CancellationTokenSource.Cancel();
+                item.Value.CancellationTokenSource.Cancel();
+                listeners.TryRemove(item);
             }
         }
     }
