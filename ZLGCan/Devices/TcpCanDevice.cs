@@ -42,6 +42,10 @@ public class TcpCanDevice : BaseDevice
         return false;
     }
 
+    /// <summary>
+    /// 尝试连接设备，如果连接上将返回True，否则返回 false
+    /// </summary>
+    /// <returns></returns>
     public override bool TryConnect()
     {
         if (disposed)
