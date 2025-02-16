@@ -4,7 +4,7 @@
 ZLGCan设备的通讯库   
 编译时，必须配置为X86   
 当前仅能连接TCP、USBCan1类型的设备   
-具体环境安装请查看官方文档  https://manual.zlg.cn/web/#/152/5332
+具体环境安装请自行查看官方文档  https://manual.zlg.cn/web/#/152/5332
 
  使用例子
 ``` C#
