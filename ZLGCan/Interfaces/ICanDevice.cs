@@ -9,7 +9,7 @@ public interface ICanDevice : IDisposable
     bool IsConnected { get; }
     int ListenWaiteTime { get; }
 
-    void Listen(Action<(uint, byte[])> onChange, uint length = 1, int waitTime = 0);
+    void Listen(Action<CanObject> onChange, uint length = 1, int waitTime = 0);
 
     bool TryConnect();
 
@@ -17,7 +17,7 @@ public interface ICanDevice : IDisposable
 
     ErrorInfo ReadErrorInfo();
 
-    (uint id, byte[] message) ReadMessage(uint length = 1, int waitTime = 0);
+    CanObject ReadMessage(uint length = 1, int waitTime = 0);
 
     CanObject WriteMessage(CanObject canObject, uint length = 1);
 
@@ -27,7 +27,7 @@ public interface ICanDevice : IDisposable
 
     bool TryReadErrorInfo(out ErrorInfo errorInfo);
 
-    bool TryReadMessage(out uint id, out byte[] message, uint length = 1, int waitTime = 0);
+    bool TryReadMessage(out CanObject canObject, uint length = 1, int waitTime = 0);
 
     bool TryWriteMessage(ref CanObject canObject, uint length = 1);
 

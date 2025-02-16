@@ -1,32 +1,27 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Concurrent;
 using ZLGCan.Devices;
-using ZLGCan.Extensions;
+using ZLGCan.Structs;
 
 namespace ZLGCan;
 
-record ListenerRecord
+internal record ListenerRecord
 {
     public Task? Task { get; init; }
-    public List<Action<(uint, byte[])>> CallBacks { get; init; } = new();
+    public List<Action<CanObject>> CallBacks { get; init; } = new();
     public required CancellationTokenSource CancellationTokenSource { get; init; }
-    public (uint, byte[])? OldValue { get; set; }
+    public CanObject? OldValue { get; set; }
 
-    public void InvokeAll((uint, byte[]) newValue, SynchronizationContext? syncContext)
+    public void InvokeAll(CanObject newCanObject, SynchronizationContext? syncContext)
     {
         foreach (var callback in CallBacks)
         {
             if (syncContext != null)
             {
-                syncContext.Post(_ => callback(newValue), null);
+                syncContext.Post(_ => callback(newCanObject), null);
             }
             else
             {
-                callback(newValue);
+                callback(newCanObject);
             }
         }
     }
@@ -38,7 +33,7 @@ internal class ListenerService
     private static readonly SynchronizationContext? _syncContext = SynchronizationContext.Current;
     private static readonly object _lock = new object();
 
-    public static void ListenDevice(BaseDevice device, Action<(uint, byte[])> onChange, uint length = 1, int waitTime = 0)
+    public static void ListenDevice(BaseDevice device, Action<CanObject> onChange, uint length = 1, int waitTime = 0)
     {
         if (listeners.TryGetValue(device, out var existingListener))
         {
@@ -72,7 +67,7 @@ internal class ListenerService
         {
             await Task.Delay(100);
 
-            (uint, byte[]) result;
+            CanObject result;
             try
             {
                 result = device.ReadMessage(length, waitTime); // 读取端口数据
@@ -95,23 +90,19 @@ internal class ListenerService
         }
     }
 
-    public static bool AreMessagesEqual((uint, byte[])? message1, (uint, byte[])? message2)
+    public static bool AreMessagesEqual(CanObject? canObject1, CanObject? canObject2)
     {
-        if (message1 == null && message2 == null)
+        if (canObject1 == null && canObject2 == null)
         {
             return true;
         }
-        if (message1 == null || message2 == null)
+        if (canObject1 == null || canObject2 == null)
         {
             return false;
         }
 
-        if (message1.Value.Item1 != message2.Value.Item1)
-        {
-            return false;
-        }
+        return canObject1 == canObject2;
 
-        return message1.Value.Item2.SequenceEqual(message2.Value.Item2);
     }
 
     public static void StopListen(BaseDevice device)

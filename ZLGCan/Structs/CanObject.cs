@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 namespace ZLGCan.Structs;
 
@@ -7,6 +8,11 @@ namespace ZLGCan.Structs;
 [StructLayout(LayoutKind.Sequential)]
 public struct CanObject
 {
+    public CanObject()
+    {
+        Data = new byte[8];
+        Reserved = new byte[3];
+    }
     // CAN 帧 ID
     public uint Id;
 
@@ -35,5 +41,45 @@ public struct CanObject
     // 系统保留字段，大小为 3 字节
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
     public byte[] Reserved;
+
+    public override bool Equals([NotNullWhen(true)] object? obj)
+    {
+        if (obj is not CanObject canObject)
+            return false;
+
+        if (this.Id != canObject.Id)
+            return false;
+        if (this.TimeStamp != canObject.TimeStamp)
+            return false;
+        return this.Data.SequenceEqual(canObject.Data);
+
+    }
+    public static bool operator ==(CanObject left, CanObject right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(CanObject left, CanObject right)
+    {
+        return !(left == right);
+    }
+
+    public override readonly int GetHashCode()
+    {
+        unchecked
+        {
+            int hash = 17;
+            hash = hash * 23 + Id.GetHashCode();
+            hash = hash * 23 + TimeStamp.GetHashCode();
+            hash = hash * 23 + TimeFlag.GetHashCode();
+            hash = hash * 23 + SendType.GetHashCode();
+            hash = hash * 23 + RemoteFlag.GetHashCode();
+            hash = hash * 23 + ExternFlag.GetHashCode();
+            hash = hash * 23 + DataLength.GetHashCode();
+            hash = hash * 23 + Data.Aggregate(0, (acc, b) => acc * 23 + b.GetHashCode());
+            hash = hash * 23 + Reserved.Aggregate(0, (acc, b) => acc * 23 + b.GetHashCode());
+            return hash;
+        }
+    }
 }
 

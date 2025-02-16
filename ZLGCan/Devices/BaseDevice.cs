@@ -56,7 +56,7 @@ public abstract class BaseDevice : ICanDevice
         return errorInfo;
     }
 
-    public virtual (uint id, byte[] message) ReadMessage(uint length = 1, int waitTime = 0)
+    public virtual CanObject ReadMessage(uint length = 1, int waitTime = 0)
     {
         if (disposed)
             throw new InvalidOperationException();
@@ -75,7 +75,7 @@ public abstract class BaseDevice : ICanDevice
         if (received is not CanObject canObject)
             throw new CanDeviceOperationException();
 
-        return (canObject.Id, canObject.Data);
+        return canObject;
     }
 
     public abstract bool TryConnect();
@@ -116,14 +116,13 @@ public abstract class BaseDevice : ICanDevice
         return true;
     }
 
-    public virtual bool TryReadMessage(out uint id, out byte[] message, uint length = 1, int waitTime = 0)
+    public virtual bool TryReadMessage(out CanObject canObject, uint length = 1, int waitTime = 0)
     {
-        id = default;
-        message = new byte[8];
-
+        canObject = new CanObject();
+       
         try
         {
-            (id, message) = ReadMessage();
+            canObject = ReadMessage();
         }
         catch (InvalidOperationException)
         {
@@ -210,7 +209,7 @@ public abstract class BaseDevice : ICanDevice
         ConnectionLost?.Invoke(this);
     }
 
-    public virtual void Listen(Action<(uint, byte[])> onChange, uint length = 1, int waitTime = 0)
+    public virtual void Listen(Action<CanObject> onChange, uint length = 1, int waitTime = 0)
     {
         ListenerService.ListenDevice(this, onChange, length, waitTime);
     }
