@@ -26,8 +26,6 @@ public abstract class BaseDevice : ICanDevice
     public bool IsConnected { get; protected set; }
     public abstract uint UintDeviceType { get; }
 
-    public int PollingTimeout { get; set; } = 100;
-
     public virtual CanControllerStatus ReadCanControllerStatus()
     {
         if (disposed)
@@ -37,7 +35,10 @@ public abstract class BaseDevice : ICanDevice
         var status = new CanControllerStatus();
 
         if (ZLGApi.VCI_ReadCANStatus(UintDeviceType, deviceIndex, canIndex, ref status) != (uint)OperationStatus.Success)
+        {
+            StopListen();
             throw new CanDeviceOperationException();
+        }
 
         return status;
     }
@@ -51,8 +52,10 @@ public abstract class BaseDevice : ICanDevice
         var errorInfo = new ErrorInfo();
 
         if (ZLGApi.VCI_ReadErrInfo(UintDeviceType, deviceIndex, canIndex, ref errorInfo) != (uint)OperationStatus.Success)
+        {
+            StopListen();
             throw new CanDeviceOperationException();
-
+        }
         return errorInfo;
     }
 
@@ -64,17 +67,23 @@ public abstract class BaseDevice : ICanDevice
             throw new InvalidOperationException();
 
         if (ZLGApi.VCI_GetReceiveNum(UintDeviceType, deviceIndex, canIndex) != (uint)OperationStatus.Success)
+        {
+            StopListen();
             throw new CanDeviceOperationException();
-
+        }
         if (ZLGApi.VCI_Receive(UintDeviceType, deviceIndex, canIndex, ptr, length, waitTime) != (uint)OperationStatus.Success)
+        {
+            StopListen();
             throw new CanDeviceOperationException();
-
+        }
         Marshal.WriteByte(ptr, 0x00);
 
         var received = Marshal.PtrToStructure((IntPtr)((uint)ptr), typeof(CanObject));
         if (received is not CanObject canObject)
+        {
+            StopListen();
             throw new CanDeviceOperationException();
-
+        }
         return canObject;
     }
 
@@ -119,7 +128,7 @@ public abstract class BaseDevice : ICanDevice
     public virtual bool TryReadMessage(out CanObject canObject, uint length = 1, int waitTime = 0)
     {
         canObject = new CanObject();
-       
+
         try
         {
             canObject = ReadMessage();
@@ -177,8 +186,10 @@ public abstract class BaseDevice : ICanDevice
             throw new InvalidOperationException();
         var result = canObject;
         if (ZLGApi.VCI_Transmit(UintDeviceType, deviceIndex, canIndex, ref result, length) != (uint)OperationStatus.Success)
+        {
+            StopListen();
             throw new CanDeviceOperationException();
-
+        }
         return result;
     }
 
@@ -203,28 +214,35 @@ public abstract class BaseDevice : ICanDevice
         return WriteMessage(canObject, length);
     }
 
+    protected virtual void StopListen()
+    {
+        ListenerService.StopListen(this);
+    }
+
     internal virtual void OnConnectionLost()
     {
         IsConnected = false;
         ConnectionLost?.Invoke(this);
     }
 
-    public virtual void RegisterListener(Action<CanObject> onChange, uint length = 1, int waitTime = 0)
+    public virtual void RegisterListener(Action<CanObject> onChange, int pollingTimeout = 100, uint length = 1, int waitTime = 0)
     {
         var record = new ListenerObjectRecord()
         {
             Device = this,
+            PollingTimeout = pollingTimeout,
             Length = length,
             WaitTime = waitTime
         };
         ListenerService.RegisterListener(record, onChange);
     }
 
-    public virtual void UnregisterListener(Action<CanObject> onChange, uint length = 1, int waitTime = 0)
+    public virtual void UnregisterListener(Action<CanObject> onChange, int pollingTimeout = 100, uint length = 1, int waitTime = 0)
     {
         var record = new ListenerObjectRecord()
         {
             Device = this,
+            PollingTimeout = pollingTimeout,
             Length = length,
             WaitTime = waitTime
         };

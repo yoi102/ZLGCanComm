@@ -1,4 +1,5 @@
-﻿using ZLGCan.Devices;
+﻿using System.Diagnostics;
+using ZLGCan.Devices;
 using ZLGCan.Structs;
 
 //必须设置为X86！！！
@@ -8,6 +9,7 @@ var connected = tcpCanDevice.TryConnect();
 if (!connected)
 {
     //检查设备是否连接、CanIndex是否设置正确。ip端口是否正确！！
+    Debugger.Break();
     return;
 }
 

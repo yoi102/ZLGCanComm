@@ -7,7 +7,7 @@ namespace ZLGCan;
 internal record ListenerTaskRecord
 {
     public Task? Task { get; init; }
-    public HashSet<Action<CanObject>> CallBacks { get; init; } = new();
+    public HashSet<Action<CanObject>> CallBacks { get; init; } = [];
     public required CancellationTokenSource CancellationTokenSource { get; init; }
     public CanObject? OldValue { get; set; }
 
@@ -29,6 +29,7 @@ internal record ListenerTaskRecord
 internal record ListenerObjectRecord
 {
     public required BaseDevice Device { get; init; }
+    public required int PollingTimeout { get; init; }
     public required uint Length { get; init; }
     public required int WaitTime { get; init; }
 }
@@ -37,7 +38,7 @@ internal class ListenerService
 {
     private static readonly ConcurrentDictionary<ListenerObjectRecord, ListenerTaskRecord> listeners = new();
     private static readonly SynchronizationContext? _syncContext = SynchronizationContext.Current;
-    private static readonly object _lock = new object();
+    private static readonly object _lock = new();
 
     public static void RegisterListener(ListenerObjectRecord listenerObjectRecord, Action<CanObject> onChange)
     {
@@ -71,7 +72,7 @@ internal class ListenerService
     {
         while (!token.IsCancellationRequested)
         {
-            await Task.Delay(100);
+            await Task.Delay(listenerObjectRecord.PollingTimeout, token);
 
             CanObject result;
             try
@@ -107,6 +108,7 @@ internal class ListenerService
         if (removedListener.CallBacks.Count <= 1)
         {
             listeners.Remove(listenerObjectRecord, out _);
+            removedListener.CancellationTokenSource.Cancel();
         }
         else
         {
@@ -120,14 +122,14 @@ internal class ListenerService
         {
             var pairs = listeners.Where(x => x.Key.Device == device)
                                                                              .ToArray();
-            if (pairs.Any())
-            {
-                device.OnConnectionLost();
-            }
+            if (pairs.Length == 0)
+                return;
+            device.OnConnectionLost();
+
             foreach (var item in pairs)
             {
-                item.Value.CancellationTokenSource.Cancel();
                 listeners.TryRemove(item);
+                item.Value.CancellationTokenSource.Cancel();
             }
         }
     }
