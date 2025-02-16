@@ -12,10 +12,15 @@
     <FileVersion></FileVersion>
     <PackageIcon>ZLG.jpg</PackageIcon>
     <Version>0.0.0.5</Version>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="..\..\..\..\Downloads\ZLG.jpg">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\LICENSE">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
