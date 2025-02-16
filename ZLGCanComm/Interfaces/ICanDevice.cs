@@ -1,7 +1,7 @@
-﻿using ZLGCan.Enums;
-using ZLGCan.Structs;
+﻿using ZLGCanComm.Enums;
+using ZLGCanComm.Structs;
 
-namespace ZLGCan.Interfaces;
+namespace ZLGCanComm.Interfaces;
 
 public interface ICanDevice : IDisposable
 {

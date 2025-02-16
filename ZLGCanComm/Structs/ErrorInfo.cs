@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace ZLGCan.Structs;
+namespace ZLGCanComm.Structs;
 
 [StructLayout(LayoutKind.Sequential)]
 public struct ErrorInfo

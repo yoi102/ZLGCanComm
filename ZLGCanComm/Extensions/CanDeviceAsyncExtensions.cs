@@ -1,7 +1,7 @@
-﻿using ZLGCan.Interfaces;
-using ZLGCan.Structs;
+﻿using ZLGCanComm.Interfaces;
+using ZLGCanComm.Structs;
 
-namespace ZLGCan.Extensions;
+namespace ZLGCanComm.Extensions;
 
 public static class CanDeviceAsyncExtensions
 {

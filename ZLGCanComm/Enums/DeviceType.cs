@@ -1,4 +1,4 @@
-﻿namespace ZLGCan.Enums;
+﻿namespace ZLGCanComm.Enums;
 public enum DeviceType
 {
     VCI_PCI5121 = 1,

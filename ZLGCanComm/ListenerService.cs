@@ -1,8 +1,8 @@
 ﻿using System.Collections.Concurrent;
-using ZLGCan.Devices;
-using ZLGCan.Structs;
+using ZLGCanComm.Devices;
+using ZLGCanComm.Structs;
 
-namespace ZLGCan;
+namespace ZLGCanComm;
 
 internal record ListenerTaskRecord
 {

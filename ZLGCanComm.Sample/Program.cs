@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
-using ZLGCan.Devices;
-using ZLGCan.Structs;
+using ZLGCanComm.Devices;
+using ZLGCanComm.Structs;
 
 //必须设置为X86！！！
 TcpCanDevice tcpCanDevice = new TcpCanDevice("192.168.1.123", "4001");

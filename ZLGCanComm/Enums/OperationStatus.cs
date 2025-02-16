@@ -1,4 +1,4 @@
-﻿namespace ZLGCan.Enums;
+﻿namespace ZLGCanComm.Enums;
 
 // 函数调用返回状态值
 public enum OperationStatus

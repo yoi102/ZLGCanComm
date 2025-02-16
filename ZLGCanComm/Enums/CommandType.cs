@@ -1,4 +1,4 @@
-﻿namespace ZLGCan.Enums;
+﻿namespace ZLGCanComm.Enums;
 public enum CommandType
 {
     SetDestinationIP = 0,

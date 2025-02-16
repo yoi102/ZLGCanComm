@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace ZLGCan.Structs;
+namespace ZLGCanComm.Structs;
 
 //5.定义初始化CAN的数据类型
 [StructLayout(LayoutKind.Sequential)]

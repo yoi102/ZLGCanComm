@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace ZLGCan.Structs;
+namespace ZLGCanComm.Structs;
 
 //1.ZLGCAN系列接口卡信息的数据类型。
 [StructLayout(LayoutKind.Sequential)]

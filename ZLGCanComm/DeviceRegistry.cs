@@ -1,6 +1,6 @@
-﻿using ZLGCan.Enums;
+﻿using ZLGCanComm.Enums;
 
-namespace ZLGCan;
+namespace ZLGCanComm;
 internal class DeviceRegistry
 {
     //DeviceType - deviceIndex 

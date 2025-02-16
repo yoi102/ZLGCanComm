@@ -1,4 +1,4 @@
-﻿namespace ZLGCan;
+﻿namespace ZLGCanComm;
 public class CanDeviceOperationException : Exception
 {
     public CanDeviceOperationException() { }

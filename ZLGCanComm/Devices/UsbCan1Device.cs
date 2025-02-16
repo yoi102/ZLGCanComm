@@ -1,8 +1,8 @@
 ﻿using System.Runtime.InteropServices;
-using ZLGCan.Enums;
-using ZLGCan.Structs;
+using ZLGCanComm.Enums;
+using ZLGCanComm.Structs;
 
-namespace ZLGCan.Devices;
+namespace ZLGCanComm.Devices;
 
 public class UsbCan1Device : BaseDevice
 {

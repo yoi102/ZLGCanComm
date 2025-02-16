@@ -1,8 +1,8 @@
-﻿namespace ZLGCan;
+﻿namespace ZLGCanComm;
 
 using System;
 using System.Runtime.InteropServices;
-using ZLGCan.Structs;
+using ZLGCanComm.Structs;
 
 public static class ZLGApi
 {
@@ -48,5 +48,5 @@ public static class ZLGApi
     public static extern uint VCI_Transmit(uint DeviceType, uint DeviceInd, uint CANInd, ref CanObject pSend, uint Len);
 
     [DllImport("controlcan.dll", CharSet = CharSet.Ansi)]
-    public static extern uint VCI_Receive(uint DeviceType, uint DeviceInd, uint CANInd, IntPtr pReceive, uint Len, int WaitTime);
+    public static extern uint VCI_Receive(uint DeviceType, uint DeviceInd, uint CANInd, nint pReceive, uint Len, int WaitTime);
 };

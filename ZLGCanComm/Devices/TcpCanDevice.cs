@@ -1,9 +1,10 @@
 ﻿using System.Net;
 using System.Runtime.InteropServices;
-using ZLGCan.Enums;
-using ZLGCan.Structs;
+using ZLGCanComm;
+using ZLGCanComm.Enums;
+using ZLGCanComm.Structs;
 
-namespace ZLGCan.Devices;
+namespace ZLGCanComm.Devices;
 
 public class TcpCanDevice : BaseDevice
 {
@@ -77,7 +78,7 @@ public class TcpCanDevice : BaseDevice
         byte[] b = new byte[bits];
         for (int i = 0; i < bits; i++)
         {
-            b[i] = (byte)((num >> (i * 8)) & 0xff);
+            b[i] = (byte)(num >> i * 8 & 0xff);
         }
         return b;
     }

@@ -1,4 +1,4 @@
-﻿namespace ZLGCan.Enums;
+﻿namespace ZLGCanComm.Enums;
 public enum ReferenceCommand
 {
     SetBaudRate = 1,                  // 设置波特率

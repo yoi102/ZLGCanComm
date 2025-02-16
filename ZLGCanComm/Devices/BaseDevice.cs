@@ -1,9 +1,10 @@
 ﻿using System.Runtime.InteropServices;
-using ZLGCan.Enums;
-using ZLGCan.Interfaces;
-using ZLGCan.Structs;
+using ZLGCanComm;
+using ZLGCanComm.Enums;
+using ZLGCanComm.Interfaces;
+using ZLGCanComm.Structs;
 
-namespace ZLGCan.Devices;
+namespace ZLGCanComm.Devices;
 
 public abstract class BaseDevice : ICanDevice
 {
@@ -13,7 +14,7 @@ public abstract class BaseDevice : ICanDevice
 
     protected bool disposed;
 
-    protected IntPtr ptr;
+    protected nint ptr;
 
     public BaseDevice(uint canIndex)
     {
@@ -78,7 +79,7 @@ public abstract class BaseDevice : ICanDevice
         }
         Marshal.WriteByte(ptr, 0x00);
 
-        var received = Marshal.PtrToStructure((IntPtr)((uint)ptr), typeof(CanObject));
+        var received = Marshal.PtrToStructure((nint)(uint)ptr, typeof(CanObject));
         if (received is not CanObject canObject)
         {
             StopListen();

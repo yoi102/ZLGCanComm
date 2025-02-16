@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
-namespace ZLGCan.Structs;
+namespace ZLGCanComm.Structs;
 
 /////////////////////////////////////////////////////
 //2.定义CAN信息帧的数据类型。
@@ -47,11 +47,11 @@ public struct CanObject
         if (obj is not CanObject canObject)
             return false;
 
-        if (this.Id != canObject.Id)
+        if (Id != canObject.Id)
             return false;
-        if (this.TimeStamp != canObject.TimeStamp)
+        if (TimeStamp != canObject.TimeStamp)
             return false;
-        return this.Data.SequenceEqual(canObject.Data);
+        return Data.SequenceEqual(canObject.Data);
 
     }
     public static bool operator ==(CanObject left, CanObject right)
