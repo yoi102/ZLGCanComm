@@ -33,7 +33,7 @@ public interface ICanDevice : IDisposable
     /// <returns></returns>
     /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
     /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
-    CanControllerStatus ReadCanControllerStatus();
+    CanControllerStatus ReadStatus();
 
     /// <summary>
     /// 获取ZLGCan控制器的最后一次错误信息。

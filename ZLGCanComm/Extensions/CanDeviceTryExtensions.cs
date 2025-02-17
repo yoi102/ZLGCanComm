@@ -33,12 +33,12 @@ public static class CanDeviceTryExtensions
     /// <param name="canDevice"></param>
     /// <param name="status"></param>
     /// <returns>成功时将返回 true，反之返回 false</returns>
-    public static bool TryReadCanControllerStatus(this ICanDevice canDevice, out CanControllerStatus status)
+    public static bool TryReadStatusStatus(this ICanDevice canDevice, out CanControllerStatus status)
     {
         status = new CanControllerStatus();
         try
         {
-            status = canDevice.ReadCanControllerStatus();
+            status = canDevice.ReadStatus();
         }
         catch (InvalidOperationException)
         {

@@ -56,7 +56,7 @@ public abstract class BaseDevice : ICanDevice
     /// <returns></returns>
     /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
     /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
-    public virtual CanControllerStatus ReadCanControllerStatus()
+    public virtual CanControllerStatus ReadStatus()
     {
         if (disposed)
             throw new InvalidOperationException();
@@ -143,8 +143,14 @@ public abstract class BaseDevice : ICanDevice
     /// <param name="pollingTimeout">长轮询的Delay时长、单位毫秒,默认为一百毫秒</param>
     /// <param name="length">读取设备用的 api的入参</param>
     /// <param name="waitTime">读取设备用的 api的入参</param>
+    /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
+    /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
     public virtual void RegisterListener(Action<CanObject> onChange, int pollingTimeout = 100, uint length = 1, int waitTime = 0)
     {
+        if (disposed)
+            throw new InvalidOperationException();
+        if (!IsConnected)
+            throw new InvalidOperationException();
         var record = new ListenerObjectRecord()
         {
             Device = this,
@@ -247,7 +253,7 @@ public abstract class BaseDevice : ICanDevice
             while (true)
             {
                 await Task.Delay(200);//间隔200毫秒，读取设备
-                if (!this.TryReadCanControllerStatus(out _))
+                if (!this.TryReadStatusStatus(out _))
                 {
                     StopListen();
                     break;
