@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net9.0;net8.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Platforms>AnyCPU;x64;x86</Platforms>
+    <Platforms>x86</Platforms>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Title>ZLGCan的通讯库</Title>
     <Description>ZLGCan的通讯库，当前仅能连接TCP、USBCan1类型的设备</Description>
