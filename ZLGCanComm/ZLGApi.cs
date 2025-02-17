@@ -1,6 +1,5 @@
 ﻿namespace ZLGCanComm;
 
-using System;
 using System.Runtime.InteropServices;
 using ZLGCanComm.Structs;
 

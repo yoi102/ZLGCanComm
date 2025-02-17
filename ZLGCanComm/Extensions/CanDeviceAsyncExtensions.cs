@@ -10,6 +10,11 @@ public static class CanDeviceAsyncExtensions
         return await Task.Run(canDevice.TryConnect, cancellationToken);
     }
 
+    public static async Task ConnectAsync(this ICanDevice canDevice, CancellationToken cancellationToken = default)
+    {
+        await Task.Run(canDevice.Connect, cancellationToken);
+    }
+
     public static async Task<CanControllerStatus> ReadCanControllerStatusAsync(this ICanDevice canDevice, CancellationToken cancellationToken = default)
     {
         return await Task.Run(canDevice.ReadCanControllerStatus, cancellationToken);

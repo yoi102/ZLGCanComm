@@ -6,6 +6,11 @@ namespace ZLGCanComm.Interfaces;
 public interface ICanDevice : IDisposable
 {
     /// <summary>
+    /// 当设备意外断开时，将触发次事件、所有监听内容将被清除
+    /// </summary>
+    event Action<ICanDevice>? ConnectionLost;
+
+    /// <summary>
     /// 设备连接类型
     /// </summary>
     DeviceType DeviceType { get; }
@@ -16,9 +21,38 @@ public interface ICanDevice : IDisposable
     bool IsConnected { get; }
 
     /// <summary>
-    /// 当设备意外断开时，将触发次事件、所有监听内容将被清除
+    /// 尝试连接设备，如果连接上将返回True，否则返回 false
     /// </summary>
-    event Action<ICanDevice>? ConnectionLost;
+    /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
+    /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
+    void Connect();
+
+    /// <summary>
+    /// 读取Can控制器信息
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
+    /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
+    CanControllerStatus ReadCanControllerStatus();
+
+    /// <summary>
+    /// 获取ZLGCan控制器的最后一次错误信息。
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
+    /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
+    ErrorInfo ReadErrorInfo();
+
+    /// <summary>
+    /// 获取ZLGCan控制器接收缓冲区中接收到但尚未被读取的帧数。
+    /// 以获取Can信息帧
+    /// </summary>
+    /// <param name="length"></param>
+    /// <param name="waitTime"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
+    /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
+    CanObject ReadMessage(uint length = 1, int waitTime = 0);
 
     /// <summary>
     /// 注册监听设备。
@@ -32,7 +66,6 @@ public interface ICanDevice : IDisposable
     /// <param name="length">读取设备用的 api的入参</param>
     /// <param name="waitTime">读取设备用的 api的入参</param>
     void RegisterListener(Action<CanObject> onChange, int pollingTimeout = 100, uint length = 1, int waitTime = 0);
-
     /// <summary>
     /// 取消监听设备。
     /// <para>当当前实例和入参的 <paramref name="pollingTimeout"/>，<paramref name="length"/>，<paramref name="waitTime"/> 一致时，视为同一个监听者</para>
@@ -44,28 +77,25 @@ public interface ICanDevice : IDisposable
     void UnregisterListener(Action<CanObject> onChange, int pollingTimeout = 100, uint length = 1, int waitTime = 0);
 
     /// <summary>
-    /// 尝试连接设备，如果连接上将返回True，否则返回 false
+    /// 向ZLGCan控制器发送帧数
     /// </summary>
+    /// <param name="canObject"></param>
+    /// <param name="length"></param>
     /// <returns></returns>
-    bool TryConnect();
-
-    CanControllerStatus ReadCanControllerStatus();
-
-    ErrorInfo ReadErrorInfo();
-
-    CanObject ReadMessage(uint length = 1, int waitTime = 0);
-
+    /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
+    /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
     CanObject WriteMessage(CanObject canObject, uint length = 1);
 
+    /// <summary>
+    ///  以此配置    //SendType = 0:正常发送
+    ///             //RemoteFlag = 0:数据帧
+    ///             //ExternFlag = 0:标准帧
+    ///  向ZLGCan控制器发送帧数
+    ///  </summary>
+    /// <param name="id"></param>
+    /// <param name="message"></param>
+    /// <param name="length"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
     CanObject WriteMessage(uint id, byte[] message, uint length = 1);
-
-    bool TryReadCanControllerStatus(out CanControllerStatus status);
-
-    bool TryReadErrorInfo(out ErrorInfo errorInfo);
-
-    bool TryReadMessage(out CanObject canObject, uint length = 1, int waitTime = 0);
-
-    bool TryWriteMessage(ref CanObject canObject, uint length = 1);
-
-    bool TryWriteMessage(uint id, byte[] message, uint length = 1);
 }

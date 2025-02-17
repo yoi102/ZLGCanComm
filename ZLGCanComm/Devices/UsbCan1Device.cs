@@ -33,29 +33,30 @@ public class UsbCan1Device : BaseDevice
     /// 尝试连接设备，如果连接上将返回True，否则返回 false
     /// </summary>
     /// <returns></returns>
-    public override bool TryConnect()
+    public override void Connect()
     {
         if (disposed)
-            return false;
+            throw new InvalidOperationException();
         if (IsConnected)
-            return true;
+            return;
 
         var device_index = DeviceRegistry.GetUniqueDeviceIndex(DeviceType.VCI_CANETTCP);
 
         if (ZLGApi.VCI_OpenDevice(UintDeviceType, device_index, 0) != (uint)OperationStatus.Success)
-            return false;
+            throw new CanDeviceOperationException();
         var config = initConfig;
         if (ZLGApi.VCI_InitCAN(UintDeviceType, device_index, canIndex, ref config) != (uint)OperationStatus.Success)
-            return false;
+            throw new CanDeviceOperationException();
         initConfig = config;
 
         ZLGApi.VCI_ClearBuffer(UintDeviceType, device_index, canIndex);
 
         if (ZLGApi.VCI_StartCAN(UintDeviceType, device_index, canIndex) != (uint)OperationStatus.Success)
-            return false;
+            throw new CanDeviceOperationException();
         deviceIndex = device_index;
         IsConnected = true;
         ptr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(CanObject)));
-        return true;
+
+        base.Connect();
     }
 }

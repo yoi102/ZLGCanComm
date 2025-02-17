@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using System.Runtime.InteropServices;
-using ZLGCanComm;
 using ZLGCanComm.Enums;
 using ZLGCanComm.Structs;
 
@@ -46,31 +45,32 @@ public class TcpCanDevice : BaseDevice
     /// <summary>
     /// 尝试连接设备，如果连接上将返回True，否则返回 false
     /// </summary>
-    /// <returns></returns>
-    public override bool TryConnect()
+    /// <exception cref="InvalidOperationException">该实例被 Dispose后，调用此方法将抛出此异常</exception>
+    /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
+    public override void Connect()
     {
         if (disposed)
-            return false;
+            throw new InvalidOperationException();
         if (IsConnected)
-            return true;
+            return;
 
         var device_index = DeviceRegistry.GetUniqueDeviceIndex(DeviceType.VCI_CANETTCP);
 
         if (ZLGApi.VCI_OpenDevice(UintDeviceType, device_index, 0) != (uint)OperationStatus.Success)
-            return false;
+            throw new CanDeviceOperationException();
 
         if (!SetIp(device_index))
-            return false;
+            throw new CanDeviceOperationException();
         if (!SetPort(device_index))
-            return false;
+            throw new CanDeviceOperationException();
 
         if (ZLGApi.VCI_StartCAN(UintDeviceType, device_index, canIndex) != (uint)OperationStatus.Success)
-            return false;
+            throw new CanDeviceOperationException();
         deviceIndex = device_index;
         IsConnected = true;
         ptr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(CanObject)));
 
-        return true;
+        base.Connect();
     }
 
     private static byte[] IntToBytes(uint num, int bits)

@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
-using ZLGCanComm;
 using ZLGCanComm.Enums;
+using ZLGCanComm.Extensions;
 using ZLGCanComm.Interfaces;
 using ZLGCanComm.Structs;
 
@@ -27,6 +27,35 @@ public abstract class BaseDevice : ICanDevice
     public bool IsConnected { get; protected set; }
     public abstract uint UintDeviceType { get; }
 
+    public virtual void Connect()
+    {
+        ListenController();
+    }
+
+    /// <summary>
+    /// Dispose 当前实例
+    /// <para>连接将会断开，当前设备的监听将会全部清除</para>
+    /// <para>Dispose之后将不允许任何操作</para>
+    /// </summary>
+    public void Dispose()
+    {
+        if (!IsConnected)
+            return;
+        ListenerService.StopListen(this);
+        Marshal.FreeHGlobal(ptr);
+        ZLGApi.VCI_CloseDevice(UintDeviceType, deviceIndex);
+        var keyPair = DeviceRegistry.DeviceTypeIndexTracker.Single(x => x.Key == DeviceType && x.Value == deviceIndex);
+        DeviceRegistry.DeviceTypeIndexTracker.Remove(keyPair);
+        IsConnected = false;
+        disposed = true;
+    }
+
+    /// <summary>
+    /// 读取Can控制器信息
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
+    /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
     public virtual CanControllerStatus ReadCanControllerStatus()
     {
         if (disposed)
@@ -44,6 +73,12 @@ public abstract class BaseDevice : ICanDevice
         return status;
     }
 
+    /// <summary>
+    /// 获取ZLGCan控制器的最后一次错误信息。
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
+    /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
     public virtual ErrorInfo ReadErrorInfo()
     {
         if (disposed)
@@ -60,6 +95,15 @@ public abstract class BaseDevice : ICanDevice
         return errorInfo;
     }
 
+    /// <summary>
+    /// 获取ZLGCan控制器接收缓冲区中接收到但尚未被读取的帧数。
+    /// 以获取Can信息帧
+    /// </summary>
+    /// <param name="length"></param>
+    /// <param name="waitTime"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
+    /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
     public virtual CanObject ReadMessage(uint length = 1, int waitTime = 0)
     {
         if (disposed)
@@ -88,144 +132,6 @@ public abstract class BaseDevice : ICanDevice
         return canObject;
     }
 
-    public abstract bool TryConnect();
-
-    public virtual bool TryReadCanControllerStatus(out CanControllerStatus status)
-    {
-        status = new CanControllerStatus();
-        try
-        {
-            status = ReadCanControllerStatus();
-        }
-        catch (InvalidOperationException)
-        {
-            return false;
-        }
-        catch (CanDeviceOperationException)
-        {
-            return false;
-        }
-        return true;
-    }
-
-    public virtual bool TryReadErrorInfo(out ErrorInfo errorInfo)
-    {
-        errorInfo = new ErrorInfo();
-        try
-        {
-            errorInfo = ReadErrorInfo();
-        }
-        catch (InvalidOperationException)
-        {
-            return false;
-        }
-        catch (CanDeviceOperationException)
-        {
-            return false;
-        }
-        return true;
-    }
-
-    public virtual bool TryReadMessage(out CanObject canObject, uint length = 1, int waitTime = 0)
-    {
-        canObject = new CanObject();
-
-        try
-        {
-            canObject = ReadMessage();
-        }
-        catch (InvalidOperationException)
-        {
-            return false;
-        }
-        catch (CanDeviceOperationException)
-        {
-            return false;
-        }
-        return true;
-    }
-
-    public virtual bool TryWriteMessage(ref CanObject canObject, uint length = 1)
-    {
-        try
-        {
-            canObject = WriteMessage(canObject);
-        }
-        catch (InvalidOperationException)
-        {
-            return false;
-        }
-        catch (CanDeviceOperationException)
-        {
-            return false;
-        }
-        return true;
-    }
-
-    public virtual bool TryWriteMessage(uint id, byte[] message, uint length = 1)
-    {
-        try
-        {
-            WriteMessage(id, message, length);
-        }
-        catch (InvalidOperationException)
-        {
-            return false;
-        }
-        catch (CanDeviceOperationException)
-        {
-            return false;
-        }
-        return true;
-    }
-
-    public virtual CanObject WriteMessage(CanObject canObject, uint length = 1)
-    {
-        if (disposed)
-            throw new InvalidOperationException();
-        if (!IsConnected)
-            throw new InvalidOperationException();
-        var result = canObject;
-        if (ZLGApi.VCI_Transmit(UintDeviceType, deviceIndex, canIndex, ref result, length) != (uint)OperationStatus.Success)
-        {
-            StopListen();
-            throw new CanDeviceOperationException();
-        }
-        return result;
-    }
-
-    public virtual CanObject WriteMessage(uint id, byte[] message, uint length = 1)
-    {
-        if (disposed)
-            throw new InvalidOperationException();
-        if (!IsConnected)
-            throw new InvalidOperationException();
-
-        var canObject = new CanObject
-        {
-            Id = ZLGApi.NODE | id,
-            SendType = 0,            //0:正常发送 1:单次发送 2:自发自收 3:单次自发自收
-            RemoteFlag = 0,          //0:数据帧 1: 远程帧
-            ExternFlag = 0,          //0:标准帧 1:扩展帧
-
-            DataLength = (byte)message.Length,
-            Data = message
-        };
-
-        return WriteMessage(canObject, length);
-    }
-
-    protected virtual void StopListen()
-    {
-        ListenerService.StopListen(this);
-    }
-
-    internal virtual void OnConnectionLost()
-    {
-        IsConnected = false;
-        ConnectionLost?.Invoke(this);
-    }
-
     /// <summary>
     /// 注册监听设备。
     /// <para>会先读取一次并且调用一次 <paramref name="onChange"/>。</para>
@@ -248,7 +154,6 @@ public abstract class BaseDevice : ICanDevice
         };
         ListenerService.RegisterListener(record, onChange);
     }
-
     /// <summary>
     /// 取消监听设备。
     /// <para>当当前实例和入参的 <paramref name="pollingTimeout"/>，<paramref name="length"/>，<paramref name="waitTime"/> 一致时，视为同一个监听者</para>
@@ -270,20 +175,84 @@ public abstract class BaseDevice : ICanDevice
     }
 
     /// <summary>
-    /// Dispose 当前实例
-    /// <para>连接将会断开，当前设备的监听将会全部清除</para>
-    /// <para>Dispose之后将不允许任何操作</para>
+    /// 向ZLGCan控制器发送帧数
     /// </summary>
-    public void Dispose()
+    /// <param name="canObject"></param>
+    /// <param name="length"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
+    /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
+    public virtual CanObject WriteMessage(CanObject canObject, uint length = 1)
     {
+        if (disposed)
+            throw new InvalidOperationException();
         if (!IsConnected)
-            return;
-        ListenerService.StopListen(this);
-        Marshal.FreeHGlobal(ptr);
-        ZLGApi.VCI_CloseDevice(UintDeviceType, deviceIndex);
-        var keyPair = DeviceRegistry.DeviceTypeIndexTracker.Single(x => x.Key == DeviceType && x.Value == deviceIndex);
-        DeviceRegistry.DeviceTypeIndexTracker.Remove(keyPair);
+            throw new InvalidOperationException();
+        var result = canObject;
+        if (ZLGApi.VCI_Transmit(UintDeviceType, deviceIndex, canIndex, ref result, length) != (uint)OperationStatus.Success)
+        {
+            StopListen();
+            throw new CanDeviceOperationException();
+        }
+        return result;
+    }
+
+    /// <summary>
+    ///  以此配置    //SendType = 0:正常发送
+    ///             //RemoteFlag = 0:数据帧
+    ///             //ExternFlag = 0:标准帧
+    ///  向ZLGCan控制器发送帧数
+    ///  </summary>
+    /// <param name="id"></param>
+    /// <param name="message"></param>
+    /// <param name="length"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    public virtual CanObject WriteMessage(uint id, byte[] message, uint length = 1)
+    {
+        if (disposed)
+            throw new InvalidOperationException();
+        if (!IsConnected)
+            throw new InvalidOperationException();
+
+        var canObject = new CanObject
+        {
+            Id = ZLGApi.NODE | id,
+            SendType = 0,            //0:正常发送 1:单次发送 2:自发自收 3:单次自发自收
+            RemoteFlag = 0,          //0:数据帧 1: 远程帧
+            ExternFlag = 0,          //0:标准帧 1:扩展帧
+
+            DataLength = (byte)message.Length,
+            Data = message
+        };
+
+        return WriteMessage(canObject, length);
+    }
+
+    internal virtual void OnConnectionLost()
+    {
         IsConnected = false;
-        disposed = true;
+        ConnectionLost?.Invoke(this);
+    }
+
+    protected virtual void StopListen()
+    {
+        ListenerService.StopListen(this);
+    }
+
+    private void ListenController()
+    {
+        Task.Run(async () =>
+        {
+            while (true)
+            {
+                await Task.Delay(200);//间隔200毫秒，读取设备
+                if (!this.TryReadCanControllerStatus(out _))
+                {
+                    StopListen();
+                    break;
+                }
+            }
+        });
     }
 }
