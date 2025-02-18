@@ -11,10 +11,11 @@
     <AssemblyVersion></AssemblyVersion>
     <FileVersion></FileVersion>
     <PackageIcon>ZLG.jpg</PackageIcon>
-    <Version>0.0.0.6</Version>
+    <Version>0.0.0.9</Version>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Configurations>Debug;Release;Publish</Configurations>
+    <RepositoryUrl>https://github.com/yoi102/ZLGCanComm</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
