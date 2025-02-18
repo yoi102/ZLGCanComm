@@ -81,7 +81,7 @@ internal class ListenerService
             }
             catch (CanDeviceOperationException)
             {
-                StopListen(listenerObjectRecord.Device);
+                StopListenDevice(listenerObjectRecord.Device);
                 break;
             }
             catch (InvalidOperationException)
@@ -116,7 +116,7 @@ internal class ListenerService
         }
     }
 
-    public static void StopListen(BaseDevice device)
+    public static void StopListenDevice(BaseDevice device)
     {
         lock (_lock)
         {
@@ -124,13 +124,14 @@ internal class ListenerService
                                                                              .ToArray();
             if (pairs.Length == 0)
                 return;
-            device.OnConnectionLost();
 
             foreach (var item in pairs)
             {
                 listeners.TryRemove(item);
                 item.Value.CancellationTokenSource.Cancel();
             }
+
+            device.OnConnectionLost();
         }
     }
 }

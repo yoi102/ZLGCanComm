@@ -8,15 +8,11 @@ namespace ZLGCanComm.Devices;
 
 public abstract class BaseDevice : ICanDevice
 {
-    private static readonly SynchronizationContext? _syncContext = SynchronizationContext.Current;
-
     protected readonly uint canIndex;
-
     protected uint deviceIndex;
-
     protected bool disposed;
-
     protected nint ptr;
+    private static readonly SynchronizationContext? _syncContext = SynchronizationContext.Current;
 
     public BaseDevice(uint canIndex)
     {
@@ -27,6 +23,7 @@ public abstract class BaseDevice : ICanDevice
 
     public DeviceType DeviceType => (DeviceType)UintDeviceType;
     public bool IsConnected { get; protected set; }
+    public CanControllerStatus Status { get; private set; }
     public abstract uint UintDeviceType { get; }
 
     public virtual void Connect()
@@ -41,9 +38,9 @@ public abstract class BaseDevice : ICanDevice
     /// </summary>
     public void Dispose()
     {
-        if (!IsConnected)
+        if (disposed)
             return;
-        ListenerService.StopListen(this);
+        ListenerService.StopListenDevice(this);
         Marshal.FreeHGlobal(ptr);
         ZLGApi.VCI_CloseDevice(UintDeviceType, deviceIndex);
         var keyPair = DeviceRegistry.DeviceTypeIndexTracker.Single(x => x.Key == DeviceType && x.Value == deviceIndex);
@@ -60,29 +57,6 @@ public abstract class BaseDevice : ICanDevice
     }
 
     /// <summary>
-    /// 读取Can控制器信息
-    /// </summary>
-    /// <returns></returns>
-    /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
-    /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
-    public virtual CanControllerStatus ReadStatus()
-    {
-        if (disposed)
-            throw new InvalidOperationException();
-        if (!IsConnected)
-            throw new InvalidOperationException();
-        var status = new CanControllerStatus();
-
-        if (ZLGApi.VCI_ReadCANStatus(UintDeviceType, deviceIndex, canIndex, ref status) != (uint)OperationStatus.Success)
-        {
-            StopListen();
-            throw new CanDeviceOperationException();
-        }
-
-        return status;
-    }
-
-    /// <summary>
     /// 获取ZLGCan控制器的最后一次错误信息。
     /// </summary>
     /// <returns></returns>
@@ -94,14 +68,14 @@ public abstract class BaseDevice : ICanDevice
             throw new InvalidOperationException();
         if (!IsConnected)
             throw new InvalidOperationException();
-        var errorInfo = new ErrorInfo();
+        var errorInfo = new VCI_ERR_INFO();
 
         if (ZLGApi.VCI_ReadErrInfo(UintDeviceType, deviceIndex, canIndex, ref errorInfo) != (uint)OperationStatus.Success)
         {
             StopListen();
             throw new CanDeviceOperationException();
         }
-        return errorInfo;
+        return StructConverter.VCI_ERR_INFOToErrorInfo(errorInfo);
     }
 
     /// <summary>
@@ -132,13 +106,37 @@ public abstract class BaseDevice : ICanDevice
         }
         Marshal.WriteByte(ptr, 0x00);
 
-        var received = Marshal.PtrToStructure((nint)(uint)ptr, typeof(CanObject));
-        if (received is not CanObject canObject)
+        var received = Marshal.PtrToStructure((nint)(uint)ptr, typeof(VCI_CAN_OBJ));
+
+        if (received is not VCI_CAN_OBJ oBJ)
         {
             StopListen();
             throw new CanDeviceOperationException();
         }
-        return canObject;
+        return StructConverter.VCI_CAN_OBJToCanObject(oBJ);
+    }
+
+    /// <summary>
+    /// 读取Can控制器信息
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
+    /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
+    public virtual CanControllerStatus ReadStatus()
+    {
+        if (disposed)
+            throw new InvalidOperationException();
+        if (!IsConnected)
+            throw new InvalidOperationException();
+        var status = new VCI_CAN_STATUS();
+
+        if (ZLGApi.VCI_ReadCANStatus(UintDeviceType, deviceIndex, canIndex, ref status) != (uint)OperationStatus.Success)
+        {
+            StopListen();
+            throw new CanDeviceOperationException();
+        }
+        Status = StructConverter.VCI_CAN_STATUSToCanControllerStatus(status);
+        return Status;
     }
 
     /// <summary>
@@ -169,6 +167,7 @@ public abstract class BaseDevice : ICanDevice
         };
         ListenerService.RegisterListener(record, onChange);
     }
+
     /// <summary>
     /// 取消监听设备。
     /// <para>当当前实例和入参的 <paramref name="pollingTimeout"/>，<paramref name="length"/>，<paramref name="waitTime"/> 一致时，视为同一个监听者</para>
@@ -203,13 +202,13 @@ public abstract class BaseDevice : ICanDevice
             throw new InvalidOperationException();
         if (!IsConnected)
             throw new InvalidOperationException();
-        var result = canObject;
-        if (ZLGApi.VCI_Transmit(UintDeviceType, deviceIndex, canIndex, ref result, length) != (uint)OperationStatus.Success)
+        var send = StructConverter.CanObjectToVCI_CAN_OBJ(canObject);
+        if (ZLGApi.VCI_Transmit(UintDeviceType, deviceIndex, canIndex, ref send, length) != (uint)OperationStatus.Success)
         {
             StopListen();
             throw new CanDeviceOperationException();
         }
-        return result;
+        return StructConverter.VCI_CAN_OBJToCanObject(send);
     }
 
     /// <summary>
@@ -255,7 +254,9 @@ public abstract class BaseDevice : ICanDevice
 
     protected virtual void StopListen()
     {
-        ListenerService.StopListen(this);
+        if (!this.IsConnected)
+            return;
+        ListenerService.StopListenDevice(this);
     }
 
     private void ListenController()
@@ -264,7 +265,7 @@ public abstract class BaseDevice : ICanDevice
         {
             while (true)
             {
-                await Task.Delay(200);//间隔200毫秒，读取设备
+                await Task.Delay(200);//间隔200毫秒，读取设备状态
                 if (!this.TryReadStatusStatus(out _))
                 {
                     _syncContext?.Post(_ => StopListen(), null);

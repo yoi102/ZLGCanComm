@@ -11,6 +11,7 @@ public struct CanObject
     public CanObject()
     {
         Data = new byte[8];
+        DataLength = (byte)Data.Length;
         Reserved = new byte[3];
     }
     // CAN 帧 ID
