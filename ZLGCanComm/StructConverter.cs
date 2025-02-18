@@ -62,4 +62,32 @@ internal class StructConverter
 
         return result;
     }
+
+    public static VCI_INIT_CONFIG InitConfigToVCI_INIT_CONFIG(InitConfig config)
+    {
+        VCI_INIT_CONFIG result = new VCI_INIT_CONFIG();
+        result.AccCode = config.AcceptanceCode;
+        result.AccMask = config.AcceptanceMask;
+        result.Reserved = config.Reserved;
+        result.Filter = config.Filter;
+        result.Timing0 = config.Timing0;
+        result.Timing1 = config.Timing1;
+        result.Mode = config.Mode;
+
+        return result;
+    }
+
+    public static InitConfig VCI_INIT_CONFIGToInitConfig(VCI_INIT_CONFIG config)
+    {
+        InitConfig result = new InitConfig();
+        result.AcceptanceCode = config.AccCode;
+        result.AcceptanceMask = config.AccMask;
+        result.Reserved = config.Reserved;
+        result.Filter = config.Filter;
+        result.Timing0 = config.Timing0;
+        result.Timing1 = config.Timing1;
+        result.Mode = config.Mode;
+
+        return result;
+    }
 }

@@ -44,10 +44,10 @@ public class UsbCan1Device : BaseDevice
 
         if (ZLGApi.VCI_OpenDevice(UintDeviceType, device_index, 0) != (uint)OperationStatus.Success)
             throw new CanDeviceOperationException();
-        var config = initConfig;
+        var config = StructConverter.InitConfigToVCI_INIT_CONFIG(initConfig);
         if (ZLGApi.VCI_InitCAN(UintDeviceType, device_index, canIndex, ref config) != (uint)OperationStatus.Success)
             throw new CanDeviceOperationException();
-        initConfig = config;
+        initConfig = StructConverter.VCI_INIT_CONFIGToInitConfig(config);
 
         ZLGApi.VCI_ClearBuffer(UintDeviceType, device_index, canIndex);
 
