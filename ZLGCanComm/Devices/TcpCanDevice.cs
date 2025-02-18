@@ -111,7 +111,7 @@ public class TcpCanDevice : BaseDevice
         uint _port = Convert.ToUInt32(port);
         byte[] ports = IntToBytes(_port, 4);
 
-        if (ZLGApi.VCI_SetReference(UintDeviceType, device_index, canIndex, (uint)CommandType.SetDestinationIP, ref ports[0]) != (uint)OperationStatus.Success)
+        if (ZLGApi.VCI_SetReference(UintDeviceType, device_index, canIndex, (uint)CommandType.SetDestinationPort, ref ports[0]) != (uint)OperationStatus.Success)
             return false;
         return true;
     }

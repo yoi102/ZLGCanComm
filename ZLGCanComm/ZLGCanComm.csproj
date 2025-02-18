@@ -11,11 +11,19 @@
     <AssemblyVersion></AssemblyVersion>
     <FileVersion></FileVersion>
     <PackageIcon>ZLG.jpg</PackageIcon>
-    <Version>0.0.0.9</Version>
+    <Version>1.0.0.0</Version>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Configurations>Debug;Release;Publish</Configurations>
     <RepositoryUrl>https://github.com/yoi102/ZLGCanComm</RepositoryUrl>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Publish|net9.0|x86'">
+    <Optimize>True</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Publish|net8.0|x86'">
+    <Optimize>True</Optimize>
   </PropertyGroup>
 
   <ItemGroup>
