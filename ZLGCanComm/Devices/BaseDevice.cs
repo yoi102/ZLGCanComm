@@ -8,6 +8,8 @@ namespace ZLGCanComm.Devices;
 
 public abstract class BaseDevice : ICanDevice
 {
+    private static readonly SynchronizationContext? _syncContext = SynchronizationContext.Current;
+
     protected readonly uint canIndex;
 
     protected uint deviceIndex;
@@ -47,6 +49,13 @@ public abstract class BaseDevice : ICanDevice
         var keyPair = DeviceRegistry.DeviceTypeIndexTracker.Single(x => x.Key == DeviceType && x.Value == deviceIndex);
         DeviceRegistry.DeviceTypeIndexTracker.Remove(keyPair);
         IsConnected = false;
+        if (ConnectionLost != null)
+        {
+            foreach (Delegate d in ConnectionLost.GetInvocationList())
+            {
+                ConnectionLost -= (Action<ICanDevice>)d;
+            }
+        }
         disposed = true;
     }
 
@@ -237,6 +246,9 @@ public abstract class BaseDevice : ICanDevice
 
     internal virtual void OnConnectionLost()
     {
+        if (!IsConnected)
+            return;
+
         IsConnected = false;
         ConnectionLost?.Invoke(this);
     }
@@ -255,7 +267,7 @@ public abstract class BaseDevice : ICanDevice
                 await Task.Delay(200);//间隔200毫秒，读取设备
                 if (!this.TryReadStatusStatus(out _))
                 {
-                    StopListen();
+                    _syncContext?.Post(_ => StopListen(), null);
                     break;
                 }
             }
