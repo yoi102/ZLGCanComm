@@ -38,12 +38,6 @@ public struct VCI_CAN_OBJ
 
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)]
     public byte[] Reserved;
-
-    public void Init()
-    {
-        Data = new byte[8];
-        Reserved = new byte[3];
-    }
 }
 
 //3.定义CAN控制器状态的数据类型。

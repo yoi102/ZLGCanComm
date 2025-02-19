@@ -28,6 +28,7 @@ public abstract class BaseDevice : ICanDevice
 
     public virtual void Connect()
     {
+        ptr = Marshal.AllocHGlobal(Marshal.SizeOf<CanObject>());
         ListenController();
     }
 
@@ -45,7 +46,6 @@ public abstract class BaseDevice : ICanDevice
         ZLGApi.VCI_CloseDevice(UintDeviceType, deviceIndex);
         var keyPair = DeviceRegistry.DeviceTypeIndexTracker.Single(x => x.Key == DeviceType && x.Value == deviceIndex);
         DeviceRegistry.DeviceTypeIndexTracker.Remove(keyPair);
-        IsConnected = false;
         if (ConnectionLost != null)
         {
             foreach (Delegate d in ConnectionLost.GetInvocationList())
@@ -53,6 +53,7 @@ public abstract class BaseDevice : ICanDevice
                 ConnectionLost -= (Action<ICanDevice>)d;
             }
         }
+        IsConnected = false;
         disposed = true;
     }
 
@@ -70,12 +71,12 @@ public abstract class BaseDevice : ICanDevice
             throw new InvalidOperationException();
         var errorInfo = new VCI_ERR_INFO();
 
-        if (ZLGApi.VCI_ReadErrInfo(UintDeviceType, deviceIndex, canIndex, ref errorInfo) != (uint)OperationStatus.Success)
+        if (ZLGApi.VCI_ReadErrInfo(UintDeviceType, deviceIndex, canIndex, ref errorInfo) == (uint)OperationStatus.Failure)
         {
             StopListen();
             throw new CanDeviceOperationException();
         }
-        return StructConverter.VCI_ERR_INFOToErrorInfo(errorInfo);
+        return StructConverter.Converter(errorInfo);
     }
 
     /// <summary>
@@ -94,26 +95,25 @@ public abstract class BaseDevice : ICanDevice
         if (!IsConnected)
             throw new InvalidOperationException();
 
-        if (ZLGApi.VCI_GetReceiveNum(UintDeviceType, deviceIndex, canIndex) != (uint)OperationStatus.Success)
+        if (ZLGApi.VCI_GetReceiveNum(UintDeviceType, deviceIndex, canIndex) == 0)
         {
-            StopListen();
-            throw new CanDeviceOperationException();
+            return new CanObject();
         }
-        if (ZLGApi.VCI_Receive(UintDeviceType, deviceIndex, canIndex, ptr, length, waitTime) != (uint)OperationStatus.Success)
+        if (ZLGApi.VCI_Receive(UintDeviceType, deviceIndex, canIndex, ptr, length, waitTime) == (uint)OperationStatus.Failure)
         {
             StopListen();
             throw new CanDeviceOperationException();
         }
         Marshal.WriteByte(ptr, 0x00);
 
-        var received = Marshal.PtrToStructure((nint)(uint)ptr, typeof(VCI_CAN_OBJ));
+        var received = Marshal.PtrToStructure<VCI_CAN_OBJ?>((nint)(uint)ptr);
 
         if (received is not VCI_CAN_OBJ oBJ)
         {
             StopListen();
             throw new CanDeviceOperationException();
         }
-        return StructConverter.VCI_CAN_OBJToCanObject(oBJ);
+        return StructConverter.Converter(oBJ);
     }
 
     /// <summary>
@@ -130,12 +130,12 @@ public abstract class BaseDevice : ICanDevice
             throw new InvalidOperationException();
         var status = new VCI_CAN_STATUS();
 
-        if (ZLGApi.VCI_ReadCANStatus(UintDeviceType, deviceIndex, canIndex, ref status) != (uint)OperationStatus.Success)
+        if (ZLGApi.VCI_ReadCANStatus(UintDeviceType, deviceIndex, canIndex, ref status) == (uint)OperationStatus.Failure)
         {
             StopListen();
             throw new CanDeviceOperationException();
         }
-        Status = StructConverter.VCI_CAN_STATUSToCanControllerStatus(status);
+        Status = StructConverter.Converter(status);
         return Status;
     }
 
@@ -202,13 +202,13 @@ public abstract class BaseDevice : ICanDevice
             throw new InvalidOperationException();
         if (!IsConnected)
             throw new InvalidOperationException();
-        var send = StructConverter.CanObjectToVCI_CAN_OBJ(canObject);
-        if (ZLGApi.VCI_Transmit(UintDeviceType, deviceIndex, canIndex, ref send, length) != (uint)OperationStatus.Success)
+        var send = StructConverter.Converter(canObject);
+        if (ZLGApi.VCI_Transmit(UintDeviceType, deviceIndex, canIndex, ref send, length) == (uint)OperationStatus.Failure)
         {
             StopListen();
             throw new CanDeviceOperationException();
         }
-        return StructConverter.VCI_CAN_OBJToCanObject(send);
+        return StructConverter.Converter(send);
     }
 
     /// <summary>

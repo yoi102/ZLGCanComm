@@ -4,68 +4,80 @@ namespace ZLGCanComm;
 
 internal class StructConverter
 {
-    public static VCI_CAN_OBJ CanObjectToVCI_CAN_OBJ(CanObject canObject)
+    public static VCI_CAN_OBJ Converter(CanObject canObject)
     {
-        VCI_CAN_OBJ result = new VCI_CAN_OBJ();
-        result.Init();
-        result.ID = canObject.Id;
-        result.TimeStamp = canObject.TimeStamp;
-        result.TimeFlag = canObject.TimeFlag;
-        result.SendType = canObject.SendType;
-        result.RemoteFlag = canObject.RemoteFlag;
-        result.ExternFlag = canObject.ExternFlag;
-        Array.Copy(canObject.Data, result.Data!, 8);
+        VCI_CAN_OBJ result = new()
+        {
+            ID = canObject.Id,
+            TimeStamp = canObject.TimeStamp,
+            TimeFlag = canObject.TimeFlag,
+            SendType = canObject.SendType,
+            RemoteFlag = canObject.RemoteFlag,
+            ExternFlag = canObject.ExternFlag,
+            // 初始化 result.Data 为长度为 8 的数组
+            Data = new byte[8]
+        };
+        // 根据 canObject.Data 的长度，确定要复制的长度（最多 8 个）
+        int lengthToCopy = Math.Min(canObject.Data.Length, 8);
+        // 复制 canObject.Data 的前 lengthToCopy 个元素到 result.Data
+        Array.Copy(canObject.Data, result.Data, lengthToCopy);
         result.DataLen = (byte)result.Data!.Length;
         result.Reserved = canObject.Reserved;
         return result;
     }
 
-    public static CanObject VCI_CAN_OBJToCanObject(VCI_CAN_OBJ obj)
+    public static CanObject Converter(VCI_CAN_OBJ obj)
     {
-        CanObject result = new CanObject();
-        result.Id = obj.ID;
-        result.TimeStamp = obj.TimeStamp;
-        result.TimeFlag = obj.TimeFlag;
-        result.SendType = obj.SendType;
-        result.RemoteFlag = obj.RemoteFlag;
-        result.ExternFlag = obj.ExternFlag;
-        result.Data = obj.Data;
-        result.DataLength = obj.DataLen;
-        result.Reserved = obj.Reserved;
+        CanObject result = new()
+        {
+            Id = obj.ID,
+            TimeStamp = obj.TimeStamp,
+            TimeFlag = obj.TimeFlag,
+            SendType = obj.SendType,
+            RemoteFlag = obj.RemoteFlag,
+            ExternFlag = obj.ExternFlag,
+            Data = obj.Data,
+            DataLength = obj.DataLen,
+            Reserved = obj.Reserved
+        };
         return result;
     }
 
-    public static CanControllerStatus VCI_CAN_STATUSToCanControllerStatus(VCI_CAN_STATUS status)
+    public static CanControllerStatus Converter(VCI_CAN_STATUS status)
     {
-        CanControllerStatus result = new CanControllerStatus();
-        result.ErrorInterrupt = status.ErrInterrupt;
-        result.ModeRegister = status.regMode;
-        result.StatusRegister = status.regStatus;
-        result.AutoWakeupCapture = status.regALCapture;
-        result.ErrorCounterCapture = status.regECCapture;
-        result.ErrorWarningLimit = status.regEWLimit;
-        result.ReceiveErrorCounter = status.regRECounter;
-        result.TransmitErrorCounter = status.regTECounter;
-        result.Reserved = status.Reserved;
-
-        return result;
-    }
-
-    public static ErrorInfo VCI_ERR_INFOToErrorInfo(VCI_ERR_INFO info)
-    {
-        ErrorInfo result = new ErrorInfo();
-        result.ErrorCode = info.ErrCode;
-        result.PassiveErrorData1 = info.Passive_ErrData1;
-        result.PassiveErrorData2 = info.Passive_ErrData2;
-        result.PassiveErrorData3 = info.Passive_ErrData3;
-        result.ArbitrationLostErrorData = info.ArLost_ErrData;
+        CanControllerStatus result = new()
+        {
+            ErrorInterrupt = status.ErrInterrupt,
+            ModeRegister = status.regMode,
+            StatusRegister = status.regStatus,
+            AutoWakeupCapture = status.regALCapture,
+            ErrorCounterCapture = status.regECCapture,
+            ErrorWarningLimit = status.regEWLimit,
+            ReceiveErrorCounter = status.regRECounter,
+            TransmitErrorCounter = status.regTECounter,
+            Reserved = status.Reserved
+        };
 
         return result;
     }
 
-    public static VCI_INIT_CONFIG InitConfigToVCI_INIT_CONFIG(InitConfig config)
+    public static ErrorInfo Converter(VCI_ERR_INFO info)
     {
-        VCI_INIT_CONFIG result = new VCI_INIT_CONFIG();
+        ErrorInfo result = new()
+        {
+            ErrorCode = info.ErrCode,
+            PassiveErrorData1 = info.Passive_ErrData1,
+            PassiveErrorData2 = info.Passive_ErrData2,
+            PassiveErrorData3 = info.Passive_ErrData3,
+            ArbitrationLostErrorData = info.ArLost_ErrData
+        };
+
+        return result;
+    }
+
+    public static VCI_INIT_CONFIG Converter(InitConfig config)
+    {
+        VCI_INIT_CONFIG result = new();
         result.AccCode = config.AcceptanceCode;
         result.AccMask = config.AcceptanceMask;
         result.Reserved = config.Reserved;
@@ -77,16 +89,18 @@ internal class StructConverter
         return result;
     }
 
-    public static InitConfig VCI_INIT_CONFIGToInitConfig(VCI_INIT_CONFIG config)
+    public static InitConfig Converter(VCI_INIT_CONFIG config)
     {
-        InitConfig result = new InitConfig();
-        result.AcceptanceCode = config.AccCode;
-        result.AcceptanceMask = config.AccMask;
-        result.Reserved = config.Reserved;
-        result.Filter = config.Filter;
-        result.Timing0 = config.Timing0;
-        result.Timing1 = config.Timing1;
-        result.Mode = config.Mode;
+        InitConfig result = new()
+        {
+            AcceptanceCode = config.AccCode,
+            AcceptanceMask = config.AccMask,
+            Reserved = config.Reserved,
+            Filter = config.Filter,
+            Timing0 = config.Timing0,
+            Timing1 = config.Timing1,
+            Mode = config.Mode
+        };
 
         return result;
     }

@@ -11,7 +11,8 @@ public interface ICanDevice : IDisposable
     public CanControllerStatus Status { get; }
 
     /// <summary>
-    /// 当设备意外断开时，将触发次事件、所有监听内容将被清除
+    /// 当设备意外断开时，将触发次事件、
+    /// 所有监听内容将被清除，在重新连接时请重新订阅你的事件
     /// </summary>
     event Action<ICanDevice>? ConnectionLost;
 

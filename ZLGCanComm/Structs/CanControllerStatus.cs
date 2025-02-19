@@ -1,35 +1,54 @@
-﻿using System.Runtime.InteropServices;
+﻿namespace ZLGCanComm.Structs;
 
-namespace ZLGCanComm.Structs;
 //3.定义CAN控制器状态的数据类型。
-[StructLayout(LayoutKind.Sequential)]
 public struct CanControllerStatus
 {
-    // 中断记录，读操作会清除。
-    public byte ErrorInterrupt;
+    public CanControllerStatus()
+    {
+    }
 
-    // 控制器模式寄存器
-    public byte ModeRegister;
+    /// <summary>
+    ///  中断记录，读操作会清除
+    /// </summary>
+    public byte ErrorInterrupt { get; set; }
 
-    // 控制器状态寄存器
-    public byte StatusRegister;
+    /// <summary>
+    /// 控制器模式寄存器
+    /// </summary>
+    public byte ModeRegister { get; set; }
 
-    // 自动唤醒捕获寄存器
-    public byte AutoWakeupCapture;
+    /// <summary>
+    /// 控制器状态寄存器
+    /// </summary>
+    public byte StatusRegister { get; set; }
 
-    // 错误计数捕获寄存器
-    public byte ErrorCounterCapture;
+    /// <summary>
+    /// 自动唤醒捕获寄存器
+    /// </summary>
+    public byte AutoWakeupCapture { get; set; }
 
-    // 误差警告限值寄存器
-    public byte ErrorWarningLimit;
+    /// <summary>
+    /// 错误计数捕获寄存器
+    /// </summary>
+    public byte ErrorCounterCapture { get; set; }
 
-    // 接收错误计数器
-    public byte ReceiveErrorCounter;
+    /// <summary>
+    /// 误差警告限值寄存器
+    /// </summary>
+    public byte ErrorWarningLimit { get; set; }
 
-    // 传输错误计数器
-    public byte TransmitErrorCounter;
+    /// <summary>
+    /// 接收错误计数器
+    /// </summary>
+    public byte ReceiveErrorCounter { get; set; }
 
-    // 系统保留字段，大小为 4 字节
-    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
-    public byte[] Reserved;
+    /// <summary>
+    /// 传输错误计数器
+    /// </summary>
+    public byte TransmitErrorCounter { get; set; }
+
+    /// <summary>
+    /// 系统保留字段，大小为 4 字节
+    /// </summary>
+    public byte[] Reserved { get; set; } = new byte[4];
 }

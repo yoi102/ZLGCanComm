@@ -42,20 +42,19 @@ public class UsbCan1Device : BaseDevice
 
         var device_index = DeviceRegistry.GetUniqueDeviceIndex(DeviceType.VCI_CANETTCP);
 
-        if (ZLGApi.VCI_OpenDevice(UintDeviceType, device_index, 0) != (uint)OperationStatus.Success)
+        if (ZLGApi.VCI_OpenDevice(UintDeviceType, device_index, 0) == (uint)OperationStatus.Failure)
             throw new CanDeviceOperationException();
-        var config = StructConverter.InitConfigToVCI_INIT_CONFIG(initConfig);
-        if (ZLGApi.VCI_InitCAN(UintDeviceType, device_index, canIndex, ref config) != (uint)OperationStatus.Success)
+        var config = StructConverter.Converter(initConfig);
+        if (ZLGApi.VCI_InitCAN(UintDeviceType, device_index, canIndex, ref config) == (uint)OperationStatus.Failure)
             throw new CanDeviceOperationException();
-        initConfig = StructConverter.VCI_INIT_CONFIGToInitConfig(config);
+        initConfig = StructConverter.Converter(config);
 
         ZLGApi.VCI_ClearBuffer(UintDeviceType, device_index, canIndex);
 
-        if (ZLGApi.VCI_StartCAN(UintDeviceType, device_index, canIndex) != (uint)OperationStatus.Success)
+        if (ZLGApi.VCI_StartCAN(UintDeviceType, device_index, canIndex) == (uint)OperationStatus.Failure)
             throw new CanDeviceOperationException();
         deviceIndex = device_index;
         IsConnected = true;
-        ptr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(CanObject)));
 
         base.Connect();
     }

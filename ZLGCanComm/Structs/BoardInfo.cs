@@ -1,25 +1,50 @@
-﻿using System.Runtime.InteropServices;
-
-namespace ZLGCanComm.Structs;
+﻿namespace ZLGCanComm.Structs;
 
 //1.ZLGCAN系列接口卡信息的数据类型。
-[StructLayout(LayoutKind.Sequential)]
 public struct BoardInfo
 {
-    public ushort HardwareVersion;           // 硬件版本号，16进制，比如0x0100表示V1.00。
-    public ushort FirmwareVersion;           // 固件版本号，16进制。
-    public ushort DriverVersion;             // 驱动程序版本号，16进制。
-    public ushort InterfaceVersion;          // 接口库版本号，16进制。
-    public ushort IrqNumber;                 // 板卡所使用的中断号。
-    public byte CanChannelCount;             // CAN 通道数量,表示有几路通道。
+    /// <summary>
+    /// 硬件版本号，16进制，比如0x0100表示V1.00。
+    /// </summary>
+    public ushort HardwareVersion { get; set; }
 
-    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
-    public byte[] SerialNumber;              // 板卡的序列号，比如” USBCAN V1.00”（注意：包括字符串结束符’\0’）。
+    /// <summary>
+    /// 固件版本号，16进制。
+    /// </summary>
+    public ushort FirmwareVersion { get; set; }
 
-    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 40)]
-    public byte[] HardwareType;              // 硬件类型
+    /// <summary>
+    /// 驱动程序版本号，16进制。
+    /// </summary>
+    public ushort DriverVersion { get; set; }
 
-    [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
-    public byte[] Reserved;                  // 仅作保留，不设置。
+    /// <summary>
+    /// 接口库版本号，16进制。
+    /// </summary>
+    public ushort InterfaceVersion { get; set; }
 
+    /// <summary>
+    /// 板卡所使用的中断号。
+    /// </summary>
+    public ushort IrqNumber { get; set; }
+
+    /// <summary>
+    /// CAN 通道数量,表示有几路通道。
+    /// </summary>
+    public byte CanChannelCount { get; set; }
+
+    /// <summary>
+    /// 板卡的序列号，比如” USBCAN V1.00”（注意：包括字符串结束符’\0’）。
+    /// </summary>
+    public required byte[] SerialNumber { get; set; }
+
+    /// <summary>
+    /// 硬件类型
+    /// </summary>
+    public required byte[] HardwareType { get; set; }
+
+    /// <summary>
+    /// </summary>
+    /// </summary>
+    public required byte[] Reserved { get; set; }
 }
