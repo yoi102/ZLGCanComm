@@ -3,6 +3,7 @@
 using System.Runtime.InteropServices;
 
 //1.ZLGCAN系列接口卡信息的数据类型。
+[StructLayout(LayoutKind.Sequential)]
 public struct VCI_BOARD_INFO
 {
     public UInt16 hw_Version;
@@ -23,6 +24,7 @@ public struct VCI_BOARD_INFO
 }
 
 //2.定义CAN信息帧的数据类型。
+[StructLayout(LayoutKind.Sequential)]
 public struct VCI_CAN_OBJ
 {
     public UInt32 ID;
@@ -41,6 +43,7 @@ public struct VCI_CAN_OBJ
 }
 
 //3.定义CAN控制器状态的数据类型。
+[StructLayout(LayoutKind.Sequential)]
 public struct VCI_CAN_STATUS
 {
     public byte ErrInterrupt;
@@ -57,6 +60,7 @@ public struct VCI_CAN_STATUS
 }
 
 //4.定义错误信息的数据类型。
+[StructLayout(LayoutKind.Sequential)]
 public struct VCI_ERR_INFO
 {
     public UInt32 ErrCode;
@@ -67,6 +71,7 @@ public struct VCI_ERR_INFO
 }
 
 //5.定义初始化CAN的数据类型
+[StructLayout(LayoutKind.Sequential)]
 public struct VCI_INIT_CONFIG
 {
     public UInt32 AccCode;

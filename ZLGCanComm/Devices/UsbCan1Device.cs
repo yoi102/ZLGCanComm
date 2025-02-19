@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using ZLGCanComm.Enums;
+﻿using ZLGCanComm.Enums;
 using ZLGCanComm.Structs;
 
 namespace ZLGCanComm.Devices;
@@ -51,10 +50,7 @@ public class UsbCan1Device : BaseDevice
 
         ZLGApi.VCI_ClearBuffer(UintDeviceType, device_index, canIndex);
 
-        if (ZLGApi.VCI_StartCAN(UintDeviceType, device_index, canIndex) == (uint)OperationStatus.Failure)
-            throw new CanDeviceOperationException();
         deviceIndex = device_index;
-        IsConnected = true;
 
         base.Connect();
     }

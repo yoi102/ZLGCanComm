@@ -40,11 +40,14 @@ internal class ListenerService
     private static readonly SynchronizationContext? _syncContext = SynchronizationContext.Current;
     private static readonly object _lock = new();
 
-    public static void RegisterListener(ListenerObjectRecord listenerObjectRecord, Action<CanObject> onChange)
+    internal static void RegisterListener(ListenerObjectRecord listenerObjectRecord, Action<CanObject> onChange)
     {
         if (listeners.TryGetValue(listenerObjectRecord, out var existingListener))
         {
-            existingListener.CallBacks.Add(onChange);
+            if (!existingListener.CallBacks.Any(x => x.Target == onChange.Target && x.Method == onChange.Method))
+            {
+                existingListener.CallBacks.Add(onChange);
+            }
             return;
         }
 
@@ -81,7 +84,7 @@ internal class ListenerService
             }
             catch (CanDeviceOperationException)
             {
-                StopListenDevice(listenerObjectRecord.Device);
+                DeviceConnectionDropped(listenerObjectRecord.Device);
                 break;
             }
             catch (InvalidOperationException)
@@ -101,7 +104,7 @@ internal class ListenerService
         }
     }
 
-    public static void UnregisterListener(ListenerObjectRecord listenerObjectRecord, Action<CanObject> callBack)
+    internal static void UnregisterListener(ListenerObjectRecord listenerObjectRecord, Action<CanObject> callBack)
     {
         if (!listeners.TryGetValue(listenerObjectRecord, out var removedListener))
             return;
@@ -116,22 +119,33 @@ internal class ListenerService
         }
     }
 
-    public static void StopListenDevice(BaseDevice device)
+    internal static void DeviceConnectionDropped(BaseDevice device)
     {
         lock (_lock)
         {
-            var pairs = listeners.Where(x => x.Key.Device == device)
-                                                                             .ToArray();
-            if (pairs.Length == 0)
-                return;
-
-            foreach (var item in pairs)
+            bool flowControl = StopListenDevice(device);
+            if (!flowControl)
             {
-                listeners.TryRemove(item);
-                item.Value.CancellationTokenSource.Cancel();
+                return;
             }
 
             device.OnConnectionLost();
         }
+    }
+
+    internal static bool StopListenDevice(BaseDevice device)
+    {
+        var pairs = listeners.Where(x => x.Key.Device == device)
+                                                                         .ToArray();
+        if (pairs.Length == 0)
+            return false;
+
+        foreach (var item in pairs)
+        {
+            listeners.TryRemove(item);
+            item.Value.CancellationTokenSource.Cancel();
+        }
+
+        return true;
     }
 }

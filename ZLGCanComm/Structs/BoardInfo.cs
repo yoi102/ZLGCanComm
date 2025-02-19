@@ -3,6 +3,10 @@
 //1.ZLGCAN系列接口卡信息的数据类型。
 public struct BoardInfo
 {
+    public BoardInfo()
+    {
+
+    }
     /// <summary>
     /// 硬件版本号，16进制，比如0x0100表示V1.00。
     /// </summary>
@@ -36,15 +40,15 @@ public struct BoardInfo
     /// <summary>
     /// 板卡的序列号，比如” USBCAN V1.00”（注意：包括字符串结束符’\0’）。
     /// </summary>
-    public required byte[] SerialNumber { get; set; }
+    public byte[] SerialNumber { get; set; } = new byte[20];
 
     /// <summary>
     /// 硬件类型
     /// </summary>
-    public required byte[] HardwareType { get; set; }
+    public byte[] HardwareType { get; set; } = new byte[40];
 
     /// <summary>
+    /// 系统保留字段，大小为 4 字节
     /// </summary>
-    /// </summary>
-    public required byte[] Reserved { get; set; }
+    public byte[] Reserved { get; set; } = new byte[8];
 }

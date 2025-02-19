@@ -19,17 +19,49 @@ public abstract class BaseDevice : ICanDevice
         this.canIndex = canIndex;
     }
 
+    /// <summary>
+    /// 当设备意外断开时，将触发次事件、
+    /// 所有监听内容将被清除，在重新连接时请重新设置监听
+    /// </summary>
     public event Action<ICanDevice>? ConnectionLost;
 
+    /// <summary>
+    /// ZLGCAN系列接口卡信息的数据类型
+    /// </summary>
+    public BoardInfo BoardInfo { get; private set; }
+
+    /// <summary>
+    /// 设备连接类型
+    /// </summary>
     public DeviceType DeviceType => (DeviceType)UintDeviceType;
+
+    /// <summary>
+    /// 最近一次错误信息
+    /// </summary>
+    public ErrorInfo ErrorInfo { get; private set; }
+
+    /// <summary>
+    /// 是否已经连接
+    /// </summary>
     public bool IsConnected { get; protected set; }
+
+    /// <summary>
+    /// 设备连接后，将间隔<see cref="CanPollingDelay"/>毫秒更新状态
+    /// </summary>
     public CanControllerStatus Status { get; private set; }
+
     public abstract uint UintDeviceType { get; }
 
     public virtual void Connect()
     {
         ptr = Marshal.AllocHGlobal(Marshal.SizeOf<CanObject>());
-        ListenController();
+        this.TryReadErrorInfo(out _);
+        this.TryReadBoardInfo(out _);
+        this.TryReadStatus(out _);
+
+        if (ZLGApi.VCI_StartCAN(UintDeviceType, deviceIndex, canIndex) == (uint)OperationStatus.Failure)
+            throw new CanDeviceOperationException();
+        IsConnected = true;
     }
 
     /// <summary>
@@ -41,7 +73,7 @@ public abstract class BaseDevice : ICanDevice
     {
         if (disposed)
             return;
-        ListenerService.StopListenDevice(this);
+        UnregisterAllListener();
         Marshal.FreeHGlobal(ptr);
         ZLGApi.VCI_CloseDevice(UintDeviceType, deviceIndex);
         var keyPair = DeviceRegistry.DeviceTypeIndexTracker.Single(x => x.Key == DeviceType && x.Value == deviceIndex);
@@ -58,6 +90,28 @@ public abstract class BaseDevice : ICanDevice
     }
 
     /// <summary>
+    /// 获取设备信息
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
+    /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
+    public virtual BoardInfo ReadBoardInfo()
+    {
+        if (disposed)
+            throw new InvalidOperationException();
+
+        var info = new VCI_BOARD_INFO();
+        BoardInfo = new();
+        if (ZLGApi.VCI_ReadBoardInfo(UintDeviceType, deviceIndex, ref info) == (uint)OperationStatus.Failure)
+        {
+            throw new CanDeviceOperationException();
+        }
+        BoardInfo = StructConverter.Converter(info);
+
+        return BoardInfo;
+    }
+
+    /// <summary>
     /// 获取ZLGCan控制器的最后一次错误信息。
     /// </summary>
     /// <returns></returns>
@@ -67,16 +121,14 @@ public abstract class BaseDevice : ICanDevice
     {
         if (disposed)
             throw new InvalidOperationException();
-        if (!IsConnected)
-            throw new InvalidOperationException();
         var errorInfo = new VCI_ERR_INFO();
-
+        ErrorInfo = new ErrorInfo();
         if (ZLGApi.VCI_ReadErrInfo(UintDeviceType, deviceIndex, canIndex, ref errorInfo) == (uint)OperationStatus.Failure)
         {
-            StopListen();
             throw new CanDeviceOperationException();
         }
-        return StructConverter.Converter(errorInfo);
+        ErrorInfo = StructConverter.Converter(errorInfo);
+        return ErrorInfo;
     }
 
     /// <summary>
@@ -101,7 +153,7 @@ public abstract class BaseDevice : ICanDevice
         }
         if (ZLGApi.VCI_Receive(UintDeviceType, deviceIndex, canIndex, ptr, length, waitTime) == (uint)OperationStatus.Failure)
         {
-            StopListen();
+            ConnectionDropped();
             throw new CanDeviceOperationException();
         }
         Marshal.WriteByte(ptr, 0x00);
@@ -110,7 +162,7 @@ public abstract class BaseDevice : ICanDevice
 
         if (received is not VCI_CAN_OBJ oBJ)
         {
-            StopListen();
+            ConnectionDropped();
             throw new CanDeviceOperationException();
         }
         return StructConverter.Converter(oBJ);
@@ -126,13 +178,12 @@ public abstract class BaseDevice : ICanDevice
     {
         if (disposed)
             throw new InvalidOperationException();
-        if (!IsConnected)
-            throw new InvalidOperationException();
+
         var status = new VCI_CAN_STATUS();
+        Status = new();
 
         if (ZLGApi.VCI_ReadCANStatus(UintDeviceType, deviceIndex, canIndex, ref status) == (uint)OperationStatus.Failure)
         {
-            StopListen();
             throw new CanDeviceOperationException();
         }
         Status = StructConverter.Converter(status);
@@ -143,8 +194,9 @@ public abstract class BaseDevice : ICanDevice
     /// 注册监听设备。
     /// <para>会先读取一次并且调用一次 <paramref name="onChange"/>。</para>
     /// <para>之后当读取的信息发生变化时，将触发 <paramref name="onChange"/>。</para>
-    /// <para>不允许多次注册。当当前实例和入参的 <paramref name="pollingTimeout"/>，<paramref name="length"/>，<paramref name="waitTime"/> 一致时，视为同一个监听者，第二次之后的注册将不会有任何动作。</para>
-    /// <para>允许注册多个 <paramref name="onChange"/> 回调。</para>
+    /// <para>不允许多次注册。仅当前实例和入参的 <paramref name="pollingTimeout"/>，<paramref name="length"/>，<paramref name="waitTime"/> 一致时，视为同一个监听者</para>
+    /// <para>同一个监听者第二次之后的注册将不会有任何动作。</para>
+    /// <para>允许注册多个 <paramref name="onChange"/> 回调，同一个监听者同一个回调多次注册时，仅第一次有效。</para>
     /// </summary>
     /// <param name="onChange">当去读的值发生变化时将触发</param>
     /// <param name="pollingTimeout">长轮询的Delay时长、单位毫秒,默认为一百毫秒</param>
@@ -168,9 +220,14 @@ public abstract class BaseDevice : ICanDevice
         ListenerService.RegisterListener(record, onChange);
     }
 
+    public void UnregisterAllListener()
+    {
+        ListenerService.StopListenDevice(this);
+    }
+
     /// <summary>
     /// 取消监听设备。
-    /// <para>当当前实例和入参的 <paramref name="pollingTimeout"/>，<paramref name="length"/>，<paramref name="waitTime"/> 一致时，视为同一个监听者</para>
+    /// <para>仅当前实例和入参的 <paramref name="pollingTimeout"/>，<paramref name="length"/>，<paramref name="waitTime"/> 一致时，视为同一个监听者</para>
     /// </summary>
     /// <param name="onChange">当去读的值发生变化时将触发</param>
     /// <param name="pollingTimeout">长轮询的Delay时长、单位毫秒,默认为一百毫秒</param>
@@ -205,7 +262,7 @@ public abstract class BaseDevice : ICanDevice
         var send = StructConverter.Converter(canObject);
         if (ZLGApi.VCI_Transmit(UintDeviceType, deviceIndex, canIndex, ref send, length) == (uint)OperationStatus.Failure)
         {
-            StopListen();
+            ConnectionDropped();
             throw new CanDeviceOperationException();
         }
         return StructConverter.Converter(send);
@@ -249,29 +306,20 @@ public abstract class BaseDevice : ICanDevice
             return;
 
         IsConnected = false;
-        ConnectionLost?.Invoke(this);
-    }
-
-    protected virtual void StopListen()
-    {
-        if (!this.IsConnected)
-            return;
-        ListenerService.StopListenDevice(this);
-    }
-
-    private void ListenController()
-    {
-        Task.Run(async () =>
+        if (_syncContext is null)
         {
-            while (true)
-            {
-                await Task.Delay(200);//间隔200毫秒，读取设备状态
-                if (!this.TryReadStatusStatus(out _))
-                {
-                    _syncContext?.Post(_ => StopListen(), null);
-                    break;
-                }
-            }
-        });
+            ConnectionLost?.Invoke(this);
+        }
+        else
+        {
+            _syncContext?.Post(_ => ConnectionLost?.Invoke(this), null);
+        }
+    }
+
+    protected virtual void ConnectionDropped()
+    {
+        if (!IsConnected)
+            return;
+        ListenerService.DeviceConnectionDropped(this);
     }
 }
