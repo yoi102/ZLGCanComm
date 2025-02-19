@@ -6,6 +6,7 @@ namespace ZLGCanComm.Devices;
 public class UsbCan1Device : BaseDevice
 {
     private InitConfig initConfig;
+    private bool isOpened;
 
     public UsbCan1Device() : base(0)
     {
@@ -39,18 +40,25 @@ public class UsbCan1Device : BaseDevice
         if (IsConnected)
             return;
 
-        var device_index = DeviceRegistry.GetUniqueDeviceIndex(DeviceType.VCI_CANETTCP);
+        if (!isOpened)
+        {
+            var device_index = DeviceRegistry.GetUniqueDeviceIndex(DeviceType);
+            deviceIndex = device_index;
+        }
+        else
+        {
+            ZLGApi.VCI_CloseDevice(UintDeviceType, deviceIndex);
+        }
 
-        if (ZLGApi.VCI_OpenDevice(UintDeviceType, device_index, 0) == (uint)OperationStatus.Failure)
+        if (ZLGApi.VCI_OpenDevice(UintDeviceType, deviceIndex, 0) == (uint)OperationStatus.Failure)
             throw new CanDeviceOperationException();
+        isOpened = true;
         var config = StructConverter.Converter(initConfig);
-        if (ZLGApi.VCI_InitCAN(UintDeviceType, device_index, canIndex, ref config) == (uint)OperationStatus.Failure)
+        if (ZLGApi.VCI_InitCAN(UintDeviceType, deviceIndex, canIndex, ref config) == (uint)OperationStatus.Failure)
             throw new CanDeviceOperationException();
         initConfig = StructConverter.Converter(config);
 
-        ZLGApi.VCI_ClearBuffer(UintDeviceType, device_index, canIndex);
-
-        deviceIndex = device_index;
+        ZLGApi.VCI_ClearBuffer(UintDeviceType, deviceIndex, canIndex);
 
         base.Connect();
     }

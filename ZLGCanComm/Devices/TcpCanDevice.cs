@@ -8,6 +8,7 @@ public class TcpCanDevice : BaseDevice
     private readonly string ip;
 
     private readonly string port;
+    private bool isOpened;
 
     public TcpCanDevice(string ip, string port, uint canIndex = 0) : base(canIndex)
     {
@@ -51,18 +52,22 @@ public class TcpCanDevice : BaseDevice
             throw new InvalidOperationException();
         if (IsConnected)
             return;
-
-        var device_index = DeviceRegistry.GetUniqueDeviceIndex(DeviceType.VCI_CANETTCP);
-
-        if (ZLGApi.VCI_OpenDevice(UintDeviceType, device_index, 0) == (uint)OperationStatus.Failure)
+        if (!isOpened)
+        {
+            var device_index = DeviceRegistry.GetUniqueDeviceIndex(DeviceType);
+            deviceIndex = device_index;
+        }
+        else
+        {
+            ZLGApi.VCI_CloseDevice(UintDeviceType, deviceIndex);
+        }
+        if (ZLGApi.VCI_OpenDevice(UintDeviceType, deviceIndex, 0) == (uint)OperationStatus.Failure)
             throw new CanDeviceOperationException();
-
-        if (!SetIp(device_index))
+        isOpened = true;
+        if (!SetIp(deviceIndex))
             throw new CanDeviceOperationException();
-        if (!SetPort(device_index))
+        if (!SetPort(deviceIndex))
             throw new CanDeviceOperationException();
-
-        deviceIndex = device_index;
 
         base.Connect();
     }
