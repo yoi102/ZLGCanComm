@@ -8,7 +8,12 @@ public class UsbCan1Device : BaseDevice
     private InitConfig initConfig;
     private bool isOpened;
 
-    public UsbCan1Device() : base(0)
+    /// <summary>
+    /// 适用于VCI_USBCAN1
+    /// </summary>
+    /// <param name="deviceIndex">设备引索</param>
+    /// <param name="canIndex">CAN 通道号</param>
+    public UsbCan1Device(uint deviceIndex = 0, uint canIndex = 0) : base(deviceIndex, canIndex)
     {
         initConfig = new InitConfig()
         {
@@ -22,7 +27,13 @@ public class UsbCan1Device : BaseDevice
         };
     }
 
-    public UsbCan1Device(uint canIndex, InitConfig initConfig) : base(canIndex)
+    /// <summary>
+    /// 适用于VCI_USBCAN1
+    /// </summary>
+    /// <param name="initConfig">初始化设置</param>
+    /// <param name="deviceIndex">设备引索</param>
+    /// <param name="canIndex">CAN 通道号</param>
+    public UsbCan1Device(InitConfig initConfig, uint deviceIndex = 0, uint canIndex = 0) : base(deviceIndex, canIndex)
     {
         this.initConfig = initConfig;
     }
@@ -30,7 +41,7 @@ public class UsbCan1Device : BaseDevice
     public override uint UintDeviceType => (uint)DeviceType.VCI_USBCAN1;
 
     /// <summary>
-    /// 尝试连接设备，如果连接上将返回True，否则返回 false
+    /// 连接设备
     /// </summary>
     /// <returns></returns>
     public override void Connect()
@@ -40,25 +51,20 @@ public class UsbCan1Device : BaseDevice
         if (IsConnected)
             return;
 
-        if (!isOpened)
+        if (isOpened)
         {
-            var device_index = DeviceRegistry.GetUniqueDeviceIndex(DeviceType);
-            deviceIndex = device_index;
-        }
-        else
-        {
-            ZLGApi.VCI_CloseDevice(UintDeviceType, deviceIndex);
+            ZLGApi.VCI_CloseDevice(UintDeviceType, DeviceIndex);
         }
 
-        if (ZLGApi.VCI_OpenDevice(UintDeviceType, deviceIndex, 0) == (uint)OperationStatus.Failure)
+        if (ZLGApi.VCI_OpenDevice(UintDeviceType, DeviceIndex, 0) == (uint)OperationStatus.Failure)
             throw new CanDeviceOperationException();
         isOpened = true;
         var config = StructConverter.Converter(initConfig);
-        if (ZLGApi.VCI_InitCAN(UintDeviceType, deviceIndex, canIndex, ref config) == (uint)OperationStatus.Failure)
+        if (ZLGApi.VCI_InitCAN(UintDeviceType, DeviceIndex, CanIndex, ref config) == (uint)OperationStatus.Failure)
             throw new CanDeviceOperationException();
         initConfig = StructConverter.Converter(config);
 
-        ZLGApi.VCI_ClearBuffer(UintDeviceType, deviceIndex, canIndex);
+        ZLGApi.VCI_ClearBuffer(UintDeviceType, DeviceIndex, CanIndex);
 
         base.Connect();
     }

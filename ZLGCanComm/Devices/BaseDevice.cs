@@ -8,16 +8,16 @@ namespace ZLGCanComm.Devices;
 
 public abstract class BaseDevice : ICanDevice
 {
-    protected readonly uint canIndex;
-    protected uint deviceIndex;
     protected bool disposed;
     protected nint ptr;
     private static readonly object _lock = new();
     private static readonly SynchronizationContext? _syncContext = SynchronizationContext.Current;
-
-    public BaseDevice(uint canIndex)
+    public uint CanIndex { get; }
+    public uint DeviceIndex { get; }
+    public BaseDevice(uint deviceIndex, uint canIndex)
     {
-        this.canIndex = canIndex;
+        this.DeviceIndex = deviceIndex;
+        this.CanIndex = canIndex;
     }
 
     /// <summary>
@@ -61,7 +61,7 @@ public abstract class BaseDevice : ICanDevice
         this.TryReadBoardInfo(out _);
         this.TryReadStatus(out _);
 
-        if (ZLGApi.VCI_StartCAN(UintDeviceType, deviceIndex, canIndex) == (uint)OperationStatus.Failure)
+        if (ZLGApi.VCI_StartCAN(UintDeviceType, DeviceIndex, CanIndex) == (uint)OperationStatus.Failure)
             throw new CanDeviceOperationException();
         IsConnected = true;
     }
@@ -77,9 +77,7 @@ public abstract class BaseDevice : ICanDevice
             return;
         UnregisterAllListener();
         Marshal.FreeHGlobal(ptr);
-        ZLGApi.VCI_CloseDevice(UintDeviceType, deviceIndex);
-        var keyPair = DeviceRegistry.DeviceTypeIndexTracker.Single(x => x.Key == DeviceType && x.Value == deviceIndex);
-        DeviceRegistry.DeviceTypeIndexTracker.Remove(keyPair);
+        ZLGApi.VCI_CloseDevice(UintDeviceType, DeviceIndex);
         if (ConnectionLost != null)
         {
             foreach (Delegate d in ConnectionLost.GetInvocationList())
@@ -102,7 +100,7 @@ public abstract class BaseDevice : ICanDevice
             throw new InvalidOperationException();
         if (!IsConnected)
             throw new InvalidOperationException();
-        return ZLGApi.VCI_GetReceiveNum(UintDeviceType, deviceIndex, canIndex);
+        return ZLGApi.VCI_GetReceiveNum(UintDeviceType, DeviceIndex, CanIndex);
     }
 
     /// <summary>
@@ -118,7 +116,7 @@ public abstract class BaseDevice : ICanDevice
 
         var info = new VCI_BOARD_INFO();
         BoardInfo = new();
-        if (ZLGApi.VCI_ReadBoardInfo(UintDeviceType, deviceIndex, ref info) == (uint)OperationStatus.Failure)
+        if (ZLGApi.VCI_ReadBoardInfo(UintDeviceType, DeviceIndex, ref info) == (uint)OperationStatus.Failure)
         {
             throw new CanDeviceOperationException();
         }
@@ -139,7 +137,7 @@ public abstract class BaseDevice : ICanDevice
             throw new InvalidOperationException();
         var errorInfo = new VCI_ERR_INFO();
         ErrorInfo = new ErrorInfo();
-        if (ZLGApi.VCI_ReadErrInfo(UintDeviceType, deviceIndex, canIndex, ref errorInfo) == (uint)OperationStatus.Failure)
+        if (ZLGApi.VCI_ReadErrInfo(UintDeviceType, DeviceIndex, CanIndex, ref errorInfo) == (uint)OperationStatus.Failure)
         {
             throw new CanDeviceOperationException();
         }
@@ -163,7 +161,7 @@ public abstract class BaseDevice : ICanDevice
         if (!IsConnected)
             throw new InvalidOperationException();
 
-        if (ZLGApi.VCI_GetReceiveNum(UintDeviceType, deviceIndex, canIndex) == 0)
+        if (ZLGApi.VCI_GetReceiveNum(UintDeviceType, DeviceIndex, CanIndex) == 0)
         {
             return null;
         }
@@ -186,7 +184,7 @@ public abstract class BaseDevice : ICanDevice
         if (!IsConnected)
             throw new InvalidOperationException();
 
-        if (ZLGApi.VCI_Receive(UintDeviceType, deviceIndex, canIndex, ptr, length, waitTime) == (uint)OperationStatus.Failure)
+        if (ZLGApi.VCI_Receive(UintDeviceType, DeviceIndex, CanIndex, ptr, length, waitTime) == (uint)OperationStatus.Failure)
         {
             OnConnectionLost();
             throw new CanDeviceOperationException();
@@ -217,7 +215,7 @@ public abstract class BaseDevice : ICanDevice
         var status = new VCI_CAN_STATUS();
         Status = new();
 
-        if (ZLGApi.VCI_ReadCANStatus(UintDeviceType, deviceIndex, canIndex, ref status) == (uint)OperationStatus.Failure)
+        if (ZLGApi.VCI_ReadCANStatus(UintDeviceType, DeviceIndex, CanIndex, ref status) == (uint)OperationStatus.Failure)
         {
             throw new CanDeviceOperationException();
         }
@@ -294,7 +292,7 @@ public abstract class BaseDevice : ICanDevice
         if (!IsConnected)
             throw new InvalidOperationException();
         var send = StructConverter.Converter(canObject);
-        if (ZLGApi.VCI_Transmit(UintDeviceType, deviceIndex, canIndex, ref send, length) == (uint)OperationStatus.Failure)
+        if (ZLGApi.VCI_Transmit(UintDeviceType, DeviceIndex, CanIndex, ref send, length) == (uint)OperationStatus.Failure)
         {
             OnConnectionLost();
             throw new CanDeviceOperationException();

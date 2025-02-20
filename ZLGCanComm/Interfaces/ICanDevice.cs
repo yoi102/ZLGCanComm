@@ -18,6 +18,16 @@ public interface ICanDevice : IDisposable
     BoardInfo? BoardInfo { get; }
 
     /// <summary>
+    /// CAN 通道号
+    /// </summary>
+    uint CanIndex { get; }
+
+    /// <summary>
+    /// 设备索引号
+    /// </summary>
+    uint DeviceIndex { get; }
+
+    /// <summary>
     /// 设备连接类型
     /// </summary>
     DeviceType DeviceType { get; }
@@ -38,7 +48,7 @@ public interface ICanDevice : IDisposable
     CanControllerStatus? Status { get; }
 
     /// <summary>
-    /// 尝试连接设备，如果连接上将返回True，否则返回 false
+    /// 连接设备
     /// </summary>
     /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
     /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
