@@ -30,7 +30,7 @@ public abstract class BaseDevice : ICanDevice
     /// <summary>
     /// ZLGCAN系列接口卡信息的数据类型
     /// </summary>
-    public BoardInfo BoardInfo { get; private set; }
+    public BoardInfo? BoardInfo { get; private set; }
 
     /// <summary>
     /// 设备连接类型
@@ -40,7 +40,7 @@ public abstract class BaseDevice : ICanDevice
     /// <summary>
     /// 最近一次错误信息
     /// </summary>
-    public ErrorInfo ErrorInfo { get; private set; }
+    public ErrorInfo? ErrorInfo { get; private set; }
 
     /// <summary>
     /// 是否已经连接
@@ -50,13 +50,13 @@ public abstract class BaseDevice : ICanDevice
     /// <summary>
     /// 设备连接后，将间隔<see cref="CanPollingDelay"/>毫秒更新状态
     /// </summary>
-    public CanControllerStatus Status { get; private set; }
+    public CanControllerStatus? Status { get; private set; }
 
     public abstract uint UintDeviceType { get; }
 
     public virtual void Connect()
     {
-        ptr = Marshal.AllocHGlobal(Marshal.SizeOf<CanObject>());
+        ptr = Marshal.AllocHGlobal(Marshal.SizeOf<VCI_CAN_OBJ>());
         this.TryReadErrorInfo(out _);
         this.TryReadBoardInfo(out _);
         this.TryReadStatus(out _);
@@ -156,7 +156,7 @@ public abstract class BaseDevice : ICanDevice
     /// <returns>当控制器没有数据可读时、将返回Empty</returns>
     /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
     /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
-    public virtual CanObject ReadMessage(uint length = 1, int waitTime = 0)
+    public virtual CanObject? ReadMessage(uint length = 1, int waitTime = 0)
     {
         if (disposed)
             throw new InvalidOperationException();
@@ -165,7 +165,7 @@ public abstract class BaseDevice : ICanDevice
 
         if (ZLGApi.VCI_GetReceiveNum(UintDeviceType, deviceIndex, canIndex) == 0)
         {
-            return CanObject.Empty;
+            return null;
         }
         return ReadMessageDirect(length, waitTime);
     }

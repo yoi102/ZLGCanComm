@@ -1,13 +1,9 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
-namespace ZLGCanComm.Structs;
+﻿namespace ZLGCanComm.Structs;
 
 /////////////////////////////////////////////////////
 //2.定义CAN信息帧的数据类型。
-public struct CanObject
+public record CanObject
 {
-    public static readonly CanObject Empty = new();
-
     public CanObject()
     {
         Data = new byte[8];
@@ -59,38 +55,4 @@ public struct CanObject
     /// 系统保留字段，大小为 3 字节
     /// </summary>
     public byte[] Reserved { get; set; }
-
-    public override readonly bool Equals([NotNullWhen(true)] object? obj)
-    {
-        if (obj is not CanObject canObject)
-            return false;
-
-        if (Id != canObject.Id)
-            return false;
-        if (TimeStamp != canObject.TimeStamp)
-            return false;
-        return Data.SequenceEqual(canObject.Data);
-    }
-
-    public static bool operator ==(CanObject left, CanObject right)
-    {
-        return left.Equals(right);
-    }
-
-    public static bool operator !=(CanObject left, CanObject right)
-    {
-        return !(left == right);
-    }
-
-    public override readonly int GetHashCode()
-    {
-        unchecked
-        {
-            int hash = 17;
-            hash = hash * 23 + Id.GetHashCode();
-            hash = hash * 23 + TimeStamp.GetHashCode();
-            hash = hash * 23 + Data.Aggregate(0, (acc, b) => acc * 23 + b.GetHashCode());
-            return hash;
-        }
-    }
 }

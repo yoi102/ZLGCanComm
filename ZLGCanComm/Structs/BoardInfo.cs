@@ -1,7 +1,7 @@
 ﻿namespace ZLGCanComm.Structs;
 
 //1.ZLGCAN系列接口卡信息的数据类型。
-public struct BoardInfo
+public record BoardInfo
 {
     public BoardInfo()
     {

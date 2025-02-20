@@ -1,7 +1,7 @@
 ﻿namespace ZLGCanComm.Structs;
 
 //5.定义初始化CAN的数据类型
-public struct InitConfig
+public record InitConfig
 {
     /// <summary>
     /// 验收码

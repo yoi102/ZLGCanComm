@@ -1,7 +1,7 @@
 ﻿namespace ZLGCanComm.Structs;
 
 //3.定义CAN控制器状态的数据类型。
-public struct CanControllerStatus
+public record CanControllerStatus
 {
     public CanControllerStatus()
     {

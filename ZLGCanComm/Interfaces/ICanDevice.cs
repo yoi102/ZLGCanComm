@@ -15,7 +15,7 @@ public interface ICanDevice : IDisposable
     /// <summary>
     /// ZLGCAN系列接口卡信息的数据类型
     /// </summary>
-    BoardInfo BoardInfo { get; }
+    BoardInfo? BoardInfo { get; }
 
     /// <summary>
     /// 设备连接类型
@@ -25,7 +25,7 @@ public interface ICanDevice : IDisposable
     /// <summary>
     /// 最近一次错误信息
     /// </summary>
-    ErrorInfo ErrorInfo { get; }
+    ErrorInfo? ErrorInfo { get; }
 
     /// <summary>
     /// 是否已经连接
@@ -35,7 +35,7 @@ public interface ICanDevice : IDisposable
     /// <summary>
     /// 状态
     /// </summary>
-    CanControllerStatus Status { get; }
+    CanControllerStatus? Status { get; }
 
     /// <summary>
     /// 尝试连接设备，如果连接上将返回True，否则返回 false
@@ -69,14 +69,13 @@ public interface ICanDevice : IDisposable
 
     /// <summary>
     /// 获取ZLGCan控制器接收缓冲区中接收到但尚未被读取的帧数。
-    /// 以获取Can信息帧
     /// </summary>
     /// <param name="length"></param>
     /// <param name="waitTime"></param>
-    /// <returns>当控制器没有数据可读时、将返回Empty</returns>
+    /// <returns>当没有未被读取的帧数时，将返回 null</returns>
     /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
     /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
-    CanObject ReadMessage(uint length = 1, int waitTime = 0);
+    CanObject? ReadMessage(uint length = 1, int waitTime = 0);
 
     /// <summary>
     /// 直接获取ZLGCan控制器接收缓冲区中接收到但尚未被读取的帧数。
@@ -84,7 +83,7 @@ public interface ICanDevice : IDisposable
     /// </summary>
     /// <param name="length"></param>
     /// <param name="waitTime"></param>
-    /// <returns>当控制器没有数据可读时、将返回Empty</returns>
+    /// <returns></returns>
     /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
     /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
     CanObject ReadMessageDirect(uint length = 1, int waitTime = 0);

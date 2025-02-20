@@ -1,6 +1,6 @@
 ﻿namespace ZLGCanComm.Structs;
 
-public struct ErrorInfo
+public record ErrorInfo
 {
     /// <summary>
     /// 错误代码

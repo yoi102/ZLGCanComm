@@ -1,12 +1,7 @@
 ﻿using System.Diagnostics;
-using ZLGCanComm;
 using ZLGCanComm.Devices;
 using ZLGCanComm.Extensions;
 using ZLGCanComm.Structs;
-
-
-
-var asd =ZLGApi.VCI_GetReceiveNum(0,0,0);
 
 //必须设置为X86！！！
 
@@ -24,14 +19,19 @@ var asd =ZLGApi.VCI_GetReceiveNum(0,0,0);
 
     //读取设备信息
     tcpCanDevice.TryReadMessage(out var canObject);
-    Console.WriteLine(canObject.Id);
-    Console.WriteLine(canObject.Data);
+    if (canObject is not CanObject message)
+    {
+        Debugger.Break();
+        return;
+    }
+    Console.WriteLine(message.Id);
+    Console.WriteLine(message.Data);
     //监听设备
     tcpCanDevice.RegisterListener(Listener);
 
-    canObject.Data = new byte[8];
+    message.Data = new byte[8];
     //写入设备
-    tcpCanDevice.TryWriteMessage(canObject.Id, canObject.Data);
+    tcpCanDevice.TryWriteMessage(message.Id, message.Data);
     //如果不用必须Disposable当前实例
     tcpCanDevice.Dispose();
 }
@@ -50,19 +50,23 @@ var asd =ZLGApi.VCI_GetReceiveNum(0,0,0);
 
     //读取设备信息
     usbCan1Device.TryReadMessage(out var canObject);
-    Console.WriteLine(canObject.Id);
-    Console.WriteLine(canObject.Data);
+
+    if (canObject is not CanObject message)
+    {
+        Debugger.Break();
+        return;
+    }
+    Console.WriteLine(message.Id);
+    Console.WriteLine(message.Data);
     //监听设备
     usbCan1Device.RegisterListener(Listener);
 
-    canObject.Data = new byte[8];
+    message.Data = new byte[8];
     //写入设备
-    usbCan1Device.TryWriteMessage(canObject.Id, canObject.Data);
+    usbCan1Device.TryWriteMessage(message.Id, message.Data);
     //如果不用必须Disposable当前实例
     usbCan1Device.Dispose();
 }
-
-
 
 void Listener(CanObject canObject)
 {
