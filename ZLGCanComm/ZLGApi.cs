@@ -83,7 +83,7 @@ public struct VCI_INIT_CONFIG
     public byte Mode;
 }
 
-internal static class ZLGApi
+public static class ZLGApi
 {
     internal const UInt32 NODE = 0X400;//CAN节点的下行命令帧ID的前缀;
 

@@ -6,6 +6,8 @@ namespace ZLGCanComm.Structs;
 //2.定义CAN信息帧的数据类型。
 public struct CanObject
 {
+    public static readonly CanObject Empty = new();
+
     public CanObject()
     {
         Data = new byte[8];

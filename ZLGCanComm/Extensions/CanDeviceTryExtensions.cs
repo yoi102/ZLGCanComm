@@ -28,23 +28,19 @@ public static class CanDeviceTryExtensions
     }
 
     /// <summary>
-    /// 尝试读取Can控制器信息
+    /// 尝试获取接收缓冲区中，接收到但尚未被读取的帧数量
     /// </summary>
     /// <param name="canDevice"></param>
-    /// <param name="status"></param>
-    /// <returns>成功时将返回 true，反之返回 false</returns>
-    public static bool TryReadStatus(this ICanDevice canDevice, out CanControllerStatus status)
+    /// <param name="count"></param>
+    /// <returns></returns>
+    public static bool TryGetCanReceiveCount(this ICanDevice canDevice, out uint count)
     {
-        status = new CanControllerStatus();
+        count = 0;
         try
         {
-            status = canDevice.ReadStatus();
+            count = canDevice.GetCanReceiveCount();
         }
         catch (InvalidOperationException)
-        {
-            return false;
-        }
-        catch (CanDeviceOperationException)
         {
             return false;
         }
@@ -57,9 +53,9 @@ public static class CanDeviceTryExtensions
     /// <param name="canDevice"></param>
     /// <param name="info"></param>
     /// <returns>成功时将返回 true，反之返回 false</returns>
-    public static bool TryReadBoardInfo(this ICanDevice canDevice, out BoardInfo info)
+    public static bool TryReadBoardInfo(this ICanDevice canDevice, out BoardInfo? info)
     {
-        info = new BoardInfo();
+        info = null;
         try
         {
             info = canDevice.ReadBoardInfo();
@@ -81,9 +77,9 @@ public static class CanDeviceTryExtensions
     /// <param name="canDevice"></param>
     /// <param name="errorInfo"></param>
     /// <returns>成功时将返回 true，反之返回 false</returns>
-    public static bool TryReadErrorInfo(this ICanDevice canDevice, out ErrorInfo errorInfo)
+    public static bool TryReadErrorInfo(this ICanDevice canDevice, out ErrorInfo? errorInfo)
     {
-        errorInfo = new ErrorInfo();
+        errorInfo = null;
         try
         {
             errorInfo = canDevice.ReadErrorInfo();
@@ -100,16 +96,16 @@ public static class CanDeviceTryExtensions
     }
 
     /// <summary>
-    /// 尝试获取ZLGCan控制器的最后一次错误信息
+    /// 尝试获取ZLGCan控制器接收缓冲区中接收到但尚未被读取的帧数。
     /// </summary>
     /// <param name="canDevice"></param>
     /// <param name="canObject"></param>
     /// <param name="length"></param>
     /// <param name="waitTime"></param>
     /// <returns>成功时将返回 true，反之返回 false</returns>
-    public static bool TryReadMessage(this ICanDevice canDevice, out CanObject canObject, uint length = 1, int waitTime = 0)
+    public static bool TryReadMessage(this ICanDevice canDevice, out CanObject? canObject, uint length = 1, int waitTime = 0)
     {
-        canObject = new CanObject();
+        canObject = null;
 
         try
         {
@@ -127,7 +123,58 @@ public static class CanDeviceTryExtensions
     }
 
     /// <summary>
-    /// 尝试获取ZLGCan控制器接收缓冲区中接收到但尚未被读取的帧数
+    /// 尝试直接获取ZLGCan控制器接收缓冲区中接收到但尚未被读取的帧数。
+    /// </summary>
+    /// <param name="canDevice"></param>
+    /// <param name="canObject"></param>
+    /// <param name="length"></param>
+    /// <param name="waitTime"></param>
+    /// <returns></returns>
+    public static bool TryReadMessageDirect(this ICanDevice canDevice, out CanObject? canObject, uint length = 1, int waitTime = 0)
+    {
+        canObject = null;
+
+        try
+        {
+            canObject = canDevice.ReadMessageDirect();
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+        catch (CanDeviceOperationException)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// 尝试读取Can控制器信息
+    /// </summary>
+    /// <param name="canDevice"></param>
+    /// <param name="status"></param>
+    /// <returns>成功时将返回 true，反之返回 false</returns>
+    public static bool TryReadStatus(this ICanDevice canDevice, out CanControllerStatus? status)
+    {
+        status = null;
+        try
+        {
+            status = canDevice.ReadStatus();
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+        catch (CanDeviceOperationException)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// 向ZLGCan控制器发送帧数
     /// </summary>
     /// <param name="canDevice"></param>
     /// <param name="canObject"></param>

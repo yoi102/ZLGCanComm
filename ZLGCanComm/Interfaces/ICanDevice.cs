@@ -6,8 +6,9 @@ namespace ZLGCanComm.Interfaces;
 public interface ICanDevice : IDisposable
 {
     /// <summary>
-    /// 当设备意外断开时，将触发次事件、
-    /// 所有监听内容将被清除，在重新连接时请重新设置监听
+    /// <para>当设备意外断开时，将触发此事件。</para>
+    /// <para>注意：此事件无法实时反映Can的是否断开、只有在读写失败后才会触发此事件。</para>
+    /// <para>断开后，所有监听内容将被清除，在重新连接时请重新设置监听。</para>
     /// </summary>
     event Action<ICanDevice>? ConnectionLost;
 
@@ -44,6 +45,13 @@ public interface ICanDevice : IDisposable
     void Connect();
 
     /// <summary>
+    /// 获取接收缓冲区中，接收到但尚未被读取的帧数量
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    uint GetCanReceiveCount();
+
+    /// <summary>
     /// 获取设备信息
     /// </summary>
     /// <returns></returns>
@@ -65,10 +73,21 @@ public interface ICanDevice : IDisposable
     /// </summary>
     /// <param name="length"></param>
     /// <param name="waitTime"></param>
-    /// <returns></returns>
+    /// <returns>当控制器没有数据可读时、将返回Empty</returns>
     /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
     /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
     CanObject ReadMessage(uint length = 1, int waitTime = 0);
+
+    /// <summary>
+    /// 直接获取ZLGCan控制器接收缓冲区中接收到但尚未被读取的帧数。
+    /// 以获取Can信息帧
+    /// </summary>
+    /// <param name="length"></param>
+    /// <param name="waitTime"></param>
+    /// <returns>当控制器没有数据可读时、将返回Empty</returns>
+    /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
+    /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
+    CanObject ReadMessageDirect(uint length = 1, int waitTime = 0);
 
     /// <summary>
     /// 读取Can控制器信息
@@ -80,6 +99,7 @@ public interface ICanDevice : IDisposable
 
     /// <summary>
     /// 注册监听设备。
+    /// <para>必须在连接后才能调用</para>
     /// <para>会先读取一次并且调用一次 <paramref name="onChange"/>。</para>
     /// <para>之后当读取的信息发生变化时，将触发 <paramref name="onChange"/>。</para>
     /// <para>不允许多次注册。仅当前实例和入参的 <paramref name="pollingTimeout"/>，<paramref name="length"/>，<paramref name="waitTime"/> 一致时，视为同一个监听者</para>

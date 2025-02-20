@@ -1,7 +1,12 @@
 ﻿using System.Diagnostics;
+using ZLGCanComm;
 using ZLGCanComm.Devices;
 using ZLGCanComm.Extensions;
 using ZLGCanComm.Structs;
+
+
+
+var asd =ZLGApi.VCI_GetReceiveNum(0,0,0);
 
 //必须设置为X86！！！
 

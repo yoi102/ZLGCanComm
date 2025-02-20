@@ -12,6 +12,7 @@ public abstract class BaseDevice : ICanDevice
     protected uint deviceIndex;
     protected bool disposed;
     protected nint ptr;
+    private static readonly object _lock = new();
     private static readonly SynchronizationContext? _syncContext = SynchronizationContext.Current;
 
     public BaseDevice(uint canIndex)
@@ -20,8 +21,9 @@ public abstract class BaseDevice : ICanDevice
     }
 
     /// <summary>
-    /// 当设备意外断开时，将触发次事件、
-    /// 所有监听内容将被清除，在重新连接时请重新设置监听
+    /// <para>当设备意外断开时，将触发此事件。</para>
+    /// <para>注意：此事件无法实时反映Can的是否断开、只有在读写失败后才会触发此事件。</para>
+    /// <para>断开后，所有监听内容将被清除，在重新连接时请重新设置监听。</para>
     /// </summary>
     public event Action<ICanDevice>? ConnectionLost;
 
@@ -90,6 +92,20 @@ public abstract class BaseDevice : ICanDevice
     }
 
     /// <summary>
+    /// 获取接收缓冲区中，接收到但尚未被读取的帧数量
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    public virtual uint GetCanReceiveCount()
+    {
+        if (disposed)
+            throw new InvalidOperationException();
+        if (!IsConnected)
+            throw new InvalidOperationException();
+        return ZLGApi.VCI_GetReceiveNum(UintDeviceType, deviceIndex, canIndex);
+    }
+
+    /// <summary>
     /// 获取设备信息
     /// </summary>
     /// <returns></returns>
@@ -137,7 +153,7 @@ public abstract class BaseDevice : ICanDevice
     /// </summary>
     /// <param name="length"></param>
     /// <param name="waitTime"></param>
-    /// <returns></returns>
+    /// <returns>当控制器没有数据可读时、将返回Empty</returns>
     /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
     /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
     public virtual CanObject ReadMessage(uint length = 1, int waitTime = 0)
@@ -149,20 +165,39 @@ public abstract class BaseDevice : ICanDevice
 
         if (ZLGApi.VCI_GetReceiveNum(UintDeviceType, deviceIndex, canIndex) == 0)
         {
-            return new CanObject();
+            return CanObject.Empty;
         }
+        return ReadMessageDirect(length, waitTime);
+    }
+
+    /// <summary>
+    /// 直接获取ZLGCan控制器接收缓冲区中接收到但尚未被读取的帧数。
+    /// 以获取Can信息帧
+    /// </summary>
+    /// <param name="length"></param>
+    /// <param name="waitTime"></param>
+    /// <returns>当控制器没有数据可读时、将返回Empty</returns>
+    /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
+    /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
+    public virtual CanObject ReadMessageDirect(uint length = 1, int waitTime = 0)
+    {
+        if (disposed)
+            throw new InvalidOperationException();
+        if (!IsConnected)
+            throw new InvalidOperationException();
+
         if (ZLGApi.VCI_Receive(UintDeviceType, deviceIndex, canIndex, ptr, length, waitTime) == (uint)OperationStatus.Failure)
         {
-            ConnectionDropped();
+            OnConnectionLost();
             throw new CanDeviceOperationException();
         }
         Marshal.WriteByte(ptr, 0x00);
 
-        var received = Marshal.PtrToStructure<VCI_CAN_OBJ?>((nint)(uint)ptr);
+        var received = Marshal.PtrToStructure((nint)(uint)ptr, typeof(VCI_CAN_OBJ));
 
         if (received is not VCI_CAN_OBJ oBJ)
         {
-            ConnectionDropped();
+            OnConnectionLost();
             throw new CanDeviceOperationException();
         }
         return StructConverter.Converter(oBJ);
@@ -262,7 +297,7 @@ public abstract class BaseDevice : ICanDevice
         var send = StructConverter.Converter(canObject);
         if (ZLGApi.VCI_Transmit(UintDeviceType, deviceIndex, canIndex, ref send, length) == (uint)OperationStatus.Failure)
         {
-            ConnectionDropped();
+            OnConnectionLost();
             throw new CanDeviceOperationException();
         }
         return StructConverter.Converter(send);
@@ -300,26 +335,25 @@ public abstract class BaseDevice : ICanDevice
         return WriteMessage(canObject, length);
     }
 
-    internal virtual void OnConnectionLost()
+    protected virtual void OnConnectionLost()
     {
-        if (!IsConnected)
-            return;
-
-        IsConnected = false;
-        if (_syncContext is null)
+        lock (_lock)
         {
-            ConnectionLost?.Invoke(this);
-        }
-        else
-        {
-            _syncContext?.Post(_ => ConnectionLost?.Invoke(this), null);
-        }
-    }
+            if (!IsConnected)
+                return;
 
-    protected virtual void ConnectionDropped()
-    {
-        if (!IsConnected)
-            return;
-        ListenerService.DeviceConnectionDropped(this);
+            IsConnected = false;
+            this.TryReadErrorInfo(out _);
+            this.TryReadStatus(out _);
+            ListenerService.StopListenDevice(this);
+            if (_syncContext is null)
+            {
+                ConnectionLost?.Invoke(this);
+            }
+            else
+            {
+                _syncContext?.Post(_ => ConnectionLost?.Invoke(this), null);
+            }
+        }
     }
 }

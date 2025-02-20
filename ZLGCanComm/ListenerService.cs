@@ -6,10 +6,9 @@ namespace ZLGCanComm;
 
 internal record ListenerTaskRecord
 {
-    public Task? Task { get; init; }
+    public required Task Task { get; init; }
     public HashSet<Action<CanObject>> CallBacks { get; init; } = [];
     public required CancellationTokenSource CancellationTokenSource { get; init; }
-    public CanObject? OldValue { get; set; }
 
     public void InvokeAll(CanObject newCanObject, SynchronizationContext? syncContext)
     {
@@ -36,19 +35,25 @@ internal record ListenerObjectRecord
 
 internal class ListenerService
 {
-    private static readonly ConcurrentDictionary<ListenerObjectRecord, ListenerTaskRecord> listeners = new();
     private static readonly SynchronizationContext? _syncContext = SynchronizationContext.Current;
-    private static readonly object _lock = new();
+    private static readonly ConcurrentDictionary<ListenerObjectRecord, ListenerTaskRecord> listeners = new();
 
     internal static void RegisterListener(ListenerObjectRecord listenerObjectRecord, Action<CanObject> onChange)
     {
         if (listeners.TryGetValue(listenerObjectRecord, out var existingListener))
         {
-            if (!existingListener.CallBacks.Any(x => x.Target == onChange.Target && x.Method == onChange.Method))
+            if (existingListener.Task.IsCanceled || existingListener.Task.IsCompleted)
             {
-                existingListener.CallBacks.Add(onChange);
+                listeners.TryRemove(listenerObjectRecord, out _);
             }
-            return;
+            else
+            {
+                if (!existingListener.CallBacks.Any(x => x.Target == onChange.Target && x.Method == onChange.Method))
+                {
+                    existingListener.CallBacks.Add(onChange);
+                }
+                return;
+            }
         }
 
         var cts = new CancellationTokenSource();
@@ -68,39 +73,15 @@ internal class ListenerService
         listeners[listenerObjectRecord] = newRecord;
     }
 
-    /// <summary>
-    /// 读取设备端口数据并检测变化
-    /// </summary>
-    private static async Task ReadLoopAsync(ListenerObjectRecord listenerObjectRecord, CancellationToken token)
+    internal static void StopListenDevice(BaseDevice device)
     {
-        while (!token.IsCancellationRequested)
+        var pairs = listeners.Where(x => x.Key.Device == device)
+                                                                         .ToArray();
+
+        foreach (var item in pairs)
         {
-            await Task.Delay(listenerObjectRecord.PollingTimeout, token);
-
-            CanObject result;
-            try
-            {
-                result = listenerObjectRecord.Device.ReadMessage(listenerObjectRecord.Length, listenerObjectRecord.WaitTime); // 读取端口数据
-            }
-            catch (CanDeviceOperationException)
-            {
-                DeviceConnectionDropped(listenerObjectRecord.Device);
-                break;
-            }
-            catch (InvalidOperationException)
-            {
-                break;
-            }
-
-            if (listeners.TryGetValue(listenerObjectRecord, out var listener))
-            {
-                // 仅当值变化时触发回调
-                if (listener.OldValue == result)
-                {
-                    listener.OldValue = result;
-                    listener.InvokeAll(result, _syncContext);
-                }
-            }
+            listeners.TryRemove(item);
+            item.Value.CancellationTokenSource.Cancel();
         }
     }
 
@@ -119,33 +100,39 @@ internal class ListenerService
         }
     }
 
-    internal static void DeviceConnectionDropped(BaseDevice device)
+    /// <summary>
+    /// 读取设备端口数据并检测变化
+    /// </summary>
+    private static async Task ReadLoopAsync(ListenerObjectRecord listenerObjectRecord, CancellationToken token)
     {
-        lock (_lock)
+        while (!token.IsCancellationRequested)
         {
-            bool flowControl = StopListenDevice(device);
-            if (!flowControl)
+            await Task.Delay(listenerObjectRecord.PollingTimeout, token);
+
+            CanObject result;
+            try
             {
-                return;
+                var count = listenerObjectRecord.Device.GetCanReceiveCount();
+                if (count == 0)
+                {
+                    continue;
+                }
+                result = listenerObjectRecord.Device.ReadMessageDirect(listenerObjectRecord.Length, listenerObjectRecord.WaitTime); // 读取端口数据
+            }
+            catch (CanDeviceOperationException)
+            {
+                break;
+            }
+            catch (InvalidOperationException)
+            {
+                break;
             }
 
-            device.OnConnectionLost();
+            if (listeners.TryGetValue(listenerObjectRecord, out var listener))
+            {
+                // 仅当值变化时触发回调
+                listener.InvokeAll(result, _syncContext);
+            }
         }
-    }
-
-    internal static bool StopListenDevice(BaseDevice device)
-    {
-        var pairs = listeners.Where(x => x.Key.Device == device)
-                                                                         .ToArray();
-        if (pairs.Length == 0)
-            return false;
-
-        foreach (var item in pairs)
-        {
-            listeners.TryRemove(item);
-            item.Value.CancellationTokenSource.Cancel();
-        }
-
-        return true;
     }
 }
