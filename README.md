@@ -14,29 +14,69 @@ using ZLGCanComm.Extensions;
 using ZLGCanComm.Structs;
 
 //必须设置为X86！！！
-TcpCanDevice tcpCanDevice = new TcpCanDevice("192.168.1.123", "4001");
-//连接设备
-var connected = tcpCanDevice.TryConnect();
-if (!connected)
+
+/////Tcp示例子
 {
-    //检查设备是否连接、CanIndex是否设置正确。ip端口是否正确！！
-    Debugger.Break();
-    return;
+    TcpCanDevice tcpCanDevice = new TcpCanDevice("192.168.1.123", "4001");
+    //连接设备
+    var connected = tcpCanDevice.TryConnect();
+    if (!connected)
+    {
+        //检查设备是否连接、CanIndex是否设置正确。ip端口是否正确！！
+        Debugger.Break();
+        return;
+    }
+
+    //读取设备信息
+    tcpCanDevice.TryReadMessage(out var canObject);
+    if (canObject is not CanObject message)
+    {
+        Debugger.Break();
+        return;
+    }
+    Console.WriteLine(message.Id);
+    Console.WriteLine(message.Data);
+    //监听设备
+    tcpCanDevice.RegisterListener(Listener);
+
+    message.Data = new byte[8];
+    //写入设备
+    tcpCanDevice.TryWriteMessage(message.Id, message.Data);
+    //如果不用必须Disposable当前实例
+    tcpCanDevice.Dispose();
 }
 
-//读取设备信息
-tcpCanDevice.TryReadMessage(out var canObject);
-Console.WriteLine(canObject.Id);
-Console.WriteLine(canObject.Data);
-//监听设备
-tcpCanDevice.RegisterListener(Listener);
+/////Usb示例子
+{
+    var usbCan1Device = new UsbCan1Device();
 
-canObject.Data = new byte[8];
-//写入设备
-tcpCanDevice.TryWriteMessage(canObject.Id, canObject.Data);
-//如果不用必须Disposable当前实例
-tcpCanDevice.Dispose();
+    var usbConnected = usbCan1Device.TryConnect();
+    if (!usbConnected)
+    {
+        //检查设备是否连接、CanIndex是否设置正确。ip端口是否正确！！
+        Debugger.Break();
+        return;
+    }
 
+    //读取设备信息
+    usbCan1Device.TryReadMessage(out var canObject);
+
+    if (canObject is not CanObject message)
+    {
+        Debugger.Break();
+        return;
+    }
+    Console.WriteLine(message.Id);
+    Console.WriteLine(message.Data);
+    //监听设备
+    usbCan1Device.RegisterListener(Listener);
+
+    message.Data = new byte[8];
+    //写入设备
+    usbCan1Device.TryWriteMessage(message.Id, message.Data);
+    //如果不用必须Disposable当前实例
+    usbCan1Device.Dispose();
+}
 
 void Listener(CanObject canObject)
 {
