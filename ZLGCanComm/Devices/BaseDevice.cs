@@ -226,9 +226,8 @@ public abstract class BaseDevice : ICanDevice
     }
 
     /// <summary>
-    /// 注册监听设备。
-    /// <para>会先读取一次并且调用一次 <paramref name="onChange"/>。</para>
-    /// <para>之后当读取的信息发生变化时，将触发 <paramref name="onChange"/>。</para>
+    /// 注册监听设备。必须连接后再注册
+    /// <para>当设备有未读取的未被读取的帧数时，将触发 <paramref name="onChange"/>。</para>
     /// <para>不允许多次注册。仅当前实例和入参的 <paramref name="pollingTimeout"/>，<paramref name="length"/>，<paramref name="waitTime"/> 一致时，视为同一个监听者</para>
     /// <para>同一个监听者第二次之后的注册将不会有任何动作。</para>
     /// <para>允许注册多个 <paramref name="onChange"/> 回调，同一个监听者同一个回调多次注册时，仅第一次有效。</para>
