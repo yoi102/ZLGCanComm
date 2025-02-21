@@ -1,7 +1,8 @@
 ﻿using System.Diagnostics;
 using ZLGCanComm.Devices;
 using ZLGCanComm.Extensions;
-using ZLGCanComm.Structs;
+using ZLGCanComm.Records;
+
 
 //必须设置为X86！！！
 

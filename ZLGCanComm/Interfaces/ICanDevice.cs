@@ -1,5 +1,5 @@
 ﻿using ZLGCanComm.Enums;
-using ZLGCanComm.Structs;
+using ZLGCanComm.Records;
 
 namespace ZLGCanComm.Interfaces;
 

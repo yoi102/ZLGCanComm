@@ -1,4 +1,4 @@
-﻿namespace ZLGCanComm.Structs;
+﻿namespace ZLGCanComm.Records;
 
 //1.ZLGCAN系列接口卡信息的数据类型。
 public record BoardInfo

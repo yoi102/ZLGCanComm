@@ -1,4 +1,4 @@
-﻿namespace ZLGCanComm.Structs;
+﻿namespace ZLGCanComm.Records;
 
 /////////////////////////////////////////////////////
 //2.定义CAN信息帧的数据类型。

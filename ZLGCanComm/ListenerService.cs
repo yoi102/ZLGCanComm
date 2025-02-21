@@ -1,13 +1,13 @@
 ﻿using System.Collections.Concurrent;
 using ZLGCanComm.Devices;
-using ZLGCanComm.Structs;
+using ZLGCanComm.Records;
 
 namespace ZLGCanComm;
 
 internal record ListenerTaskRecord
 {
     public required Task Task { get; init; }
-    public HashSet<Action<CanObject>> CallBacks { get; init; } = [];
+    public required HashSet<Action<CanObject>> CallBacks { get; init; }
     public required CancellationTokenSource CancellationTokenSource { get; init; }
 
     public void InvokeAll(CanObject newCanObject, SynchronizationContext? syncContext)
@@ -68,6 +68,7 @@ internal class ListenerService
         {
             Task = task,
             CancellationTokenSource = cts,
+            CallBacks = [onChange]
         };
 
         listeners[listenerObjectRecord] = newRecord;

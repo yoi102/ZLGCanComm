@@ -2,7 +2,7 @@
 using ZLGCanComm.Enums;
 using ZLGCanComm.Extensions;
 using ZLGCanComm.Interfaces;
-using ZLGCanComm.Structs;
+using ZLGCanComm.Records;
 
 namespace ZLGCanComm.Devices;
 
@@ -183,13 +183,13 @@ public abstract class BaseDevice : ICanDevice
             throw new InvalidOperationException();
         if (!IsConnected)
             throw new InvalidOperationException();
+        Marshal.WriteByte(ptr, 0x00);
 
         if (ZLGApi.VCI_Receive(UintDeviceType, DeviceIndex, CanIndex, ptr, length, waitTime) == (uint)OperationStatus.Failure)
         {
             OnConnectionLost();
             throw new CanDeviceOperationException();
         }
-        Marshal.WriteByte(ptr, 0x00);
 
         var received = Marshal.PtrToStructure((nint)(uint)ptr, typeof(VCI_CAN_OBJ));
 

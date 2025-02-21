@@ -1,4 +1,4 @@
-﻿using ZLGCanComm.Structs;
+﻿using ZLGCanComm.Records;
 
 namespace ZLGCanComm;
 

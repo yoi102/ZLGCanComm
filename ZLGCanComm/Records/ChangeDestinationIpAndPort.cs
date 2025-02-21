@@ -1,4 +1,4 @@
-﻿namespace ZLGCanComm.Structs;
+﻿namespace ZLGCanComm.Records;
 
 public record ChangeDestinationIpAndPort
 {
