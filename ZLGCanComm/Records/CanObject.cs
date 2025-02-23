@@ -4,13 +4,6 @@
 //2.定义CAN信息帧的数据类型。
 public record CanObject
 {
-    public CanObject()
-    {
-        Data = new byte[8];
-        DataLength = (byte)Data.Length;
-        Reserved = new byte[3];
-    }
-
     /// <summary>
     /// CAN 帧 ID
     /// </summary>
@@ -42,17 +35,12 @@ public record CanObject
     public byte ExternFlag { get; set; }
 
     /// <summary>
-    /// 数据长度，最大为 8 字节
+    /// CAN 帧的数据，最多 8 字节 ；长度可小于8
     /// </summary>
-    public byte DataLength { get; set; }
-
-    /// <summary>
-    /// CAN 帧的数据，最多 8 字节
-    /// </summary>
-    public byte[] Data { get; set; }
+    public byte[] Data { get; set; } = new byte[8];
 
     /// <summary>
     /// 系统保留字段，大小为 3 字节
     /// </summary>
-    public byte[] Reserved { get; set; }
+    public byte[] Reserved { get; set; } = new byte[3];
 }

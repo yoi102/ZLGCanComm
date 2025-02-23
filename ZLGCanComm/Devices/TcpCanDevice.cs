@@ -1,16 +1,17 @@
 ﻿using System.Net;
+using ZLGCanComm.Api;
 using ZLGCanComm.Enums;
 
 namespace ZLGCanComm.Devices;
 
-public class TcpCanDevice : BaseDevice
+public class TcpCanDevice : CanDeviceBase
 {
     private readonly string ip;
     private readonly string port;
     private bool isOpened;
 
     /// <summary>
-    /// 适用于VCI_CANETTCP
+    /// 适用于VCI_CANETTCP类型的设备
     /// </summary>
     /// <param name="deviceIndex">设备引索</param>
     /// <param name="canIndex">CAN 通道号</param>
@@ -52,21 +53,19 @@ public class TcpCanDevice : BaseDevice
     /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
     public override void Connect()
     {
-        if (disposed)
+        if (isDisposed)
             throw new InvalidOperationException();
         if (IsConnected)
             return;
         if (isOpened)
         {
-            ZLGApi.VCI_CloseDevice(UintDeviceType, DeviceIndex);
+            ZLGApiProvider.Instance.CloseDevice(UintDeviceType, DeviceIndex);
         }
-        if (ZLGApi.VCI_OpenDevice(UintDeviceType, DeviceIndex, 0) == (uint)OperationStatus.Failure)
+        if (!ZLGApiProvider.Instance.OpenDevice(UintDeviceType, DeviceIndex, 0))
             throw new CanDeviceOperationException();
         isOpened = true;
-        if (!SetIp(DeviceIndex))
-            throw new CanDeviceOperationException();
-        if (!SetPort(DeviceIndex))
-            throw new CanDeviceOperationException();
+        SetIp(DeviceIndex);
+        SetPort(DeviceIndex);
 
         base.Connect();
     }
@@ -90,7 +89,7 @@ public class TcpCanDevice : BaseDevice
         return IPAddress.TryParse(ip, out _);
     }
 
-    private bool SetIp(uint device_index)
+    private void SetIp(uint device_index)
     {
         char[] ipChars = ip.ToCharArray();
         byte[] ipBytes = new byte[50];
@@ -99,18 +98,16 @@ public class TcpCanDevice : BaseDevice
             ipBytes[i] = Convert.ToByte(ipChars[i]);
         }
 
-        if (ZLGApi.VCI_SetReference(UintDeviceType, device_index, CanIndex, (uint)CommandType.SetDestinationIP, ref ipBytes[0]) == (uint)OperationStatus.Failure)
-            return false;
-        return true;
+        if (!ZLGApiProvider.Instance.SetReference(UintDeviceType, device_index, CanIndex, (uint)CommandType.SetDestinationIP, ipBytes[0]))
+            throw new CanDeviceOperationException();
     }
 
-    private bool SetPort(uint device_index)
+    private void SetPort(uint device_index)
     {
         uint _port = Convert.ToUInt32(port);
         byte[] ports = IntToBytes(_port, 4);
 
-        if (ZLGApi.VCI_SetReference(UintDeviceType, device_index, CanIndex, (uint)CommandType.SetDestinationPort, ref ports[0]) == (uint)OperationStatus.Failure)
-            return false;
-        return true;
+        if (!ZLGApiProvider.Instance.SetReference(UintDeviceType, device_index, CanIndex, (uint)CommandType.SetDestinationPort, ports[0]))
+            throw new CanDeviceOperationException();
     }
 }

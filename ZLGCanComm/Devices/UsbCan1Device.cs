@@ -1,11 +1,12 @@
-﻿using ZLGCanComm.Enums;
+﻿using ZLGCanComm.Api;
+using ZLGCanComm.Enums;
 using ZLGCanComm.Records;
 
 namespace ZLGCanComm.Devices;
 
-public class UsbCan1Device : BaseDevice
+public class UsbCan1Device : CanDeviceBase
 {
-    private InitConfig initConfig;
+    private readonly InitConfig initConfig;
     private bool isOpened;
 
     /// <summary>
@@ -28,7 +29,7 @@ public class UsbCan1Device : BaseDevice
     }
 
     /// <summary>
-    /// 适用于VCI_USBCAN1
+    /// 适用于VCI_USBCAN1类型的设备
     /// </summary>
     /// <param name="initConfig">初始化设置</param>
     /// <param name="deviceIndex">设备引索</param>
@@ -46,25 +47,23 @@ public class UsbCan1Device : BaseDevice
     /// <returns></returns>
     public override void Connect()
     {
-        if (disposed)
+        if (isDisposed)
             throw new InvalidOperationException();
         if (IsConnected)
             return;
 
         if (isOpened)
         {
-            ZLGApi.VCI_CloseDevice(UintDeviceType, DeviceIndex);
+            ZLGApiProvider.Instance.CloseDevice(UintDeviceType, DeviceIndex);
         }
 
-        if (ZLGApi.VCI_OpenDevice(UintDeviceType, DeviceIndex, 0) == (uint)OperationStatus.Failure)
+        if (!ZLGApiProvider.Instance.OpenDevice(UintDeviceType, DeviceIndex, 0))
             throw new CanDeviceOperationException();
         isOpened = true;
-        var config = StructConverter.Converter(initConfig);
-        if (ZLGApi.VCI_InitCAN(UintDeviceType, DeviceIndex, CanIndex, ref config) == (uint)OperationStatus.Failure)
+        if (!ZLGApiProvider.Instance.InitCAN(UintDeviceType, DeviceIndex, CanIndex, initConfig))
             throw new CanDeviceOperationException();
-        initConfig = StructConverter.Converter(config);
 
-        ZLGApi.VCI_ClearBuffer(UintDeviceType, DeviceIndex, CanIndex);
+        ZLGApiProvider.Instance.ClearBuffer(UintDeviceType, DeviceIndex, CanIndex);
 
         base.Connect();
     }

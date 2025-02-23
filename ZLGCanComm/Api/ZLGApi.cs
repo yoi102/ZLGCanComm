@@ -1,4 +1,4 @@
-﻿namespace ZLGCanComm;
+﻿namespace ZLGCanComm.Api;
 
 using System.Runtime.InteropServices;
 
@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 [StructLayout(LayoutKind.Sequential)]
 public struct VCI_BOARD_INFO
 {
-    public UInt16 hw_Version;
-    public UInt16 fw_Version;
-    public UInt16 dr_Version;
-    public UInt16 in_Version;
-    public UInt16 irq_Num;
+    public ushort hw_Version;
+    public ushort fw_Version;
+    public ushort dr_Version;
+    public ushort in_Version;
+    public ushort irq_Num;
     public byte can_Num;
 
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
@@ -27,8 +27,8 @@ public struct VCI_BOARD_INFO
 [StructLayout(LayoutKind.Sequential)]
 public struct VCI_CAN_OBJ
 {
-    public UInt32 ID;
-    public UInt32 TimeStamp;
+    public uint ID;
+    public uint TimeStamp;
     public byte TimeFlag;
     public byte SendType;
     public byte RemoteFlag; //是否是远程帧
@@ -63,7 +63,7 @@ public struct VCI_CAN_STATUS
 [StructLayout(LayoutKind.Sequential)]
 public struct VCI_ERR_INFO
 {
-    public UInt32 ErrCode;
+    public uint ErrCode;
     public byte Passive_ErrData1;
     public byte Passive_ErrData2;
     public byte Passive_ErrData3;
@@ -74,9 +74,9 @@ public struct VCI_ERR_INFO
 [StructLayout(LayoutKind.Sequential)]
 public struct VCI_INIT_CONFIG
 {
-    public UInt32 AccCode;
-    public UInt32 AccMask;
-    public UInt32 Reserved;
+    public uint AccCode;
+    public uint AccMask;
+    public uint Reserved;
     public byte Filter;
     public byte Timing0;
     public byte Timing1;
@@ -85,47 +85,45 @@ public struct VCI_INIT_CONFIG
 
 public static class ZLGApi
 {
-    internal const UInt32 NODE = 0X400;//CAN节点的下行命令帧ID的前缀;
+    [DllImport("controlcan.dll")]
+    public static extern uint VCI_OpenDevice(uint DeviceType, uint DeviceInd, uint Reserved);
 
     [DllImport("controlcan.dll")]
-    public static extern UInt32 VCI_OpenDevice(UInt32 DeviceType, UInt32 DeviceInd, UInt32 Reserved);
+    public static extern uint VCI_CloseDevice(uint DeviceType, uint DeviceInd);
 
     [DllImport("controlcan.dll")]
-    public static extern UInt32 VCI_CloseDevice(UInt32 DeviceType, UInt32 DeviceInd);
+    public static extern uint VCI_InitCAN(uint DeviceType, uint DeviceInd, uint CANInd, ref VCI_INIT_CONFIG pInitConfig);
 
     [DllImport("controlcan.dll")]
-    public static extern UInt32 VCI_InitCAN(UInt32 DeviceType, UInt32 DeviceInd, UInt32 CANInd, ref VCI_INIT_CONFIG pInitConfig);
+    public static extern uint VCI_ReadBoardInfo(uint DeviceType, uint DeviceInd, ref VCI_BOARD_INFO pInfo);
 
     [DllImport("controlcan.dll")]
-    public static extern UInt32 VCI_ReadBoardInfo(UInt32 DeviceType, UInt32 DeviceInd, ref VCI_BOARD_INFO pInfo);
+    public static extern uint VCI_ReadErrInfo(uint DeviceType, uint DeviceInd, uint CANInd, ref VCI_ERR_INFO pErrInfo);
 
     [DllImport("controlcan.dll")]
-    public static extern UInt32 VCI_ReadErrInfo(UInt32 DeviceType, UInt32 DeviceInd, UInt32 CANInd, ref VCI_ERR_INFO pErrInfo);
+    public static extern uint VCI_ReadCANStatus(uint DeviceType, uint DeviceInd, uint CANInd, ref VCI_CAN_STATUS pCANStatus);
 
     [DllImport("controlcan.dll")]
-    public static extern UInt32 VCI_ReadCANStatus(UInt32 DeviceType, UInt32 DeviceInd, UInt32 CANInd, ref VCI_CAN_STATUS pCANStatus);
+    public static extern uint VCI_GetReference(uint DeviceType, uint DeviceInd, uint CANInd, uint RefType, ref byte pData);
 
     [DllImport("controlcan.dll")]
-    public static extern UInt32 VCI_GetReference(UInt32 DeviceType, UInt32 DeviceInd, UInt32 CANInd, UInt32 RefType, ref byte pData);
+    public static extern uint VCI_SetReference(uint DeviceType, uint DeviceInd, uint CANInd, uint RefType, ref byte pData);
 
     [DllImport("controlcan.dll")]
-    public static extern UInt32 VCI_SetReference(UInt32 DeviceType, UInt32 DeviceInd, UInt32 CANInd, UInt32 RefType, ref byte pData);
+    public static extern uint VCI_GetReceiveNum(uint DeviceType, uint DeviceInd, uint CANInd);
 
     [DllImport("controlcan.dll")]
-    public static extern UInt32 VCI_GetReceiveNum(UInt32 DeviceType, UInt32 DeviceInd, UInt32 CANInd);
+    public static extern uint VCI_ClearBuffer(uint DeviceType, uint DeviceInd, uint CANInd);
 
     [DllImport("controlcan.dll")]
-    public static extern UInt32 VCI_ClearBuffer(UInt32 DeviceType, UInt32 DeviceInd, UInt32 CANInd);
+    public static extern uint VCI_StartCAN(uint DeviceType, uint DeviceInd, uint CANInd);
 
     [DllImport("controlcan.dll")]
-    public static extern UInt32 VCI_StartCAN(UInt32 DeviceType, UInt32 DeviceInd, UInt32 CANInd);
+    public static extern uint VCI_ResetCAN(uint DeviceType, uint DeviceInd, uint CANInd);
 
     [DllImport("controlcan.dll")]
-    public static extern UInt32 VCI_ResetCAN(UInt32 DeviceType, UInt32 DeviceInd, UInt32 CANInd);
-
-    [DllImport("controlcan.dll")]
-    public static extern UInt32 VCI_Transmit(UInt32 DeviceType, UInt32 DeviceInd, UInt32 CANInd, ref VCI_CAN_OBJ pSend, UInt32 Len);
+    public static extern uint VCI_Transmit(uint DeviceType, uint DeviceInd, uint CANInd, VCI_CAN_OBJ[] pSend, uint Len);
 
     [DllImport("controlcan.dll", CharSet = CharSet.Ansi)]
-    public static extern UInt32 VCI_Receive(UInt32 DeviceType, UInt32 DeviceInd, UInt32 CANInd, nint pReceive, UInt32 Len, int WaitTime);
+    public static extern uint VCI_Receive(uint DeviceType, uint DeviceInd, uint CANInd, nint pReceive, uint Len, int WaitTime);
 };

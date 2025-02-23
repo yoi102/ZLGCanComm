@@ -3,12 +3,11 @@ using ZLGCanComm.Devices;
 using ZLGCanComm.Extensions;
 using ZLGCanComm.Records;
 
-
 //必须设置为X86！！！
 
-/////Tcp示例子
+/////Tcp示例
 {
-    TcpCanDevice tcpCanDevice = new TcpCanDevice("192.168.1.123", "4001");
+    var tcpCanDevice = new TcpCanDevice("192.168.1.123", "4001");
     //连接设备
     var connected = tcpCanDevice.TryConnect();
     if (!connected)
@@ -19,58 +18,61 @@ using ZLGCanComm.Records;
     }
 
     //读取设备信息
-    tcpCanDevice.TryReadMessage(out var canObject);
-    if (canObject is null)
-    {
-        Debugger.Break();
-        return;
-    }
-    Console.WriteLine(canObject.Id);
-    Console.WriteLine(canObject.Data);
-    //监听设备
-    tcpCanDevice.RegisterListener(Listener);
+    var canObjects = tcpCanDevice.Receive();
 
-    canObject.Data = new byte[8];
-    //写入设备
-    tcpCanDevice.TryWriteMessage(canObject.Id, canObject.Data);
+    foreach (var item in canObjects)
+    {
+        Console.WriteLine(item.Id);
+        Console.WriteLine(item.Data);
+    }
+
+    //监听设备
+    tcpCanDevice.Subscribe(Received);
+
+    //发送单条帧数据
+    tcpCanDevice.Transmit(11, [1, 2, 3, 4, 5, 6, 7, 8]);
+
+    //发送多帧数据
+    CanObject[] sendObjects = [new CanObject(), new CanObject(), new CanObject()];
+    tcpCanDevice.Transmit(sendObjects);
+
     //如果不用必须Disposable当前实例
     tcpCanDevice.Dispose();
 }
 
-/////Usb示例子
+/////Usb示例
 {
     var usbCan1Device = new UsbCan1Device();
 
     var usbConnected = usbCan1Device.TryConnect();
-    if (!usbConnected)
-    {
-        //检查设备是否连接、CanIndex是否设置正确。ip端口是否正确！！
-        Debugger.Break();
-        return;
-    }
-
     //读取设备信息
-    usbCan1Device.TryReadMessage(out var canObject);
+    var canObjects = usbCan1Device.Receive();
 
-    if (canObject is null)
+    foreach (var item in canObjects)
     {
-        Debugger.Break();
-        return;
+        Console.WriteLine(item.Id);
+        Console.WriteLine(item.Data);
     }
-    Console.WriteLine(canObject.Id);
-    Console.WriteLine(canObject.Data);
-    //监听设备
-    usbCan1Device.RegisterListener(Listener);
 
-    canObject.Data = new byte[8];
-    //写入设备
-    usbCan1Device.TryWriteMessage(canObject.Id, canObject.Data);
+    //监听设备
+    usbCan1Device.Subscribe(Received);
+
+    //发送单条帧数据
+    usbCan1Device.Transmit(11, [1, 2, 3, 4, 5, 6, 7, 8]);
+
+    //发送多帧数据
+    CanObject[] sendObjects = [new CanObject(), new CanObject(), new CanObject()];
+    usbCan1Device.Transmit(sendObjects);
+
     //如果不用必须Disposable当前实例
     usbCan1Device.Dispose();
 }
 
-void Listener(CanObject canObject)
+void Received(CanObject[] canObjects)
 {
-    Console.WriteLine(canObject.Id);
-    Console.WriteLine(canObject.Data);
+    foreach (var item in canObjects)
+    {
+        Console.WriteLine(item.Id);
+        Console.WriteLine(item.Data);
+    }
 }
