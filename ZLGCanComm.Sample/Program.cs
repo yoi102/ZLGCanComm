@@ -19,7 +19,7 @@ const uint _NODE_ = 0X400;//CAN节点的下行命令帧ID的前缀;
         return;
     }
 
-    //读取设备信息
+    //读取
     var canObjects = tcpCanDevice.Receive();
 
     foreach (var item in canObjects)
@@ -28,7 +28,7 @@ const uint _NODE_ = 0X400;//CAN节点的下行命令帧ID的前缀;
         Console.WriteLine(item.Data);
     }
 
-    //监听设备
+    //监听
     tcpCanDevice.Subscribe(Received);
 
     //发送单帧数据
@@ -47,7 +47,14 @@ const uint _NODE_ = 0X400;//CAN节点的下行命令帧ID的前缀;
     var usbCan1Device = new UsbCan1Device();
 
     var usbConnected = usbCan1Device.TryConnect();
-    //读取设备信息
+    if (!usbConnected)
+    {
+        //检查设备是否连接、CanIndex是否设置正确。ip端口是否正确！！
+        Debugger.Break();
+        return;
+    }
+
+    //读取
     var canObjects = usbCan1Device.Receive();
 
     foreach (var item in canObjects)
@@ -56,7 +63,7 @@ const uint _NODE_ = 0X400;//CAN节点的下行命令帧ID的前缀;
         Console.WriteLine(item.Data);
     }
 
-    //监听设备
+    //监听
     usbCan1Device.Subscribe(Received);
 
     //发送单帧数据

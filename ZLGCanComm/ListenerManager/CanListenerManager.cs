@@ -54,7 +54,7 @@ internal class CanListenerManager
     /// 停止监听指定设备
     /// </summary>
     /// <param name="device"></param>
-    internal static void UnsubscribeAll(ICanDevice device)
+    internal static void Unsubscribe(ICanDevice device)
     {
         var pairs = listeners.Where(x => x.Key.Device == device)
                                                                          .ToArray();

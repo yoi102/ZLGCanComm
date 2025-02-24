@@ -131,5 +131,5 @@ public interface ICanDevice : IDisposable
     /// <summary>
     /// 取消当前设备的所有监听
     /// </summary>
-    void UnsubscribeAll();
+    void Unsubscribe();
 }

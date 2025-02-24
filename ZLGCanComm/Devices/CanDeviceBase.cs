@@ -68,7 +68,7 @@ public abstract class CanDeviceBase : ICanDevice
     {
         if (isDisposed)
             return;
-        UnsubscribeAll();
+        Unsubscribe();
         ZLGApiProvider.Instance.CloseDevice(UintDeviceType, DeviceIndex);
         IsConnected = false;
         isDisposed = true;
@@ -287,9 +287,9 @@ public abstract class CanDeviceBase : ICanDevice
     /// <summary>
     /// 取消当前设备的所有监听
     /// </summary>
-    public void UnsubscribeAll()
+    public void Unsubscribe()
     {
-        CanListenerManager.UnsubscribeAll(this);
+        CanListenerManager.Unsubscribe(this);
     }
 
     /// <summary>
