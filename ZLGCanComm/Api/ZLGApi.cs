@@ -104,10 +104,10 @@ public static class ZLGApi
     public static extern uint VCI_ReadCANStatus(uint DeviceType, uint DeviceInd, uint CANInd, ref VCI_CAN_STATUS pCANStatus);
 
     [DllImport("controlcan.dll")]
-    public static extern uint VCI_GetReference(uint DeviceType, uint DeviceInd, uint CANInd, uint RefType, ref byte pData);
+    public static extern uint VCI_GetReference(uint DeviceType, uint DeviceInd, uint CANInd, uint RefType, byte[] pData);
 
     [DllImport("controlcan.dll")]
-    public static extern uint VCI_SetReference(uint DeviceType, uint DeviceInd, uint CANInd, uint RefType, ref byte pData);
+    public static extern uint VCI_SetReference(uint DeviceType, uint DeviceInd, uint CANInd, uint RefType, byte[] pData);
 
     [DllImport("controlcan.dll")]
     public static extern uint VCI_GetReceiveNum(uint DeviceType, uint DeviceInd, uint CANInd);

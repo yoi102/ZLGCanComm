@@ -41,6 +41,11 @@ public interface ICanDevice : IDisposable
     CanControllerStatus? Status { get; }
 
     /// <summary>
+    /// 关闭设备
+    /// </summary>
+    void Close();
+
+    /// <summary>
     /// 连接设备
     /// </summary>
     /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>

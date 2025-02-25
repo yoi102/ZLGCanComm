@@ -98,16 +98,16 @@ public class TcpCanDevice : CanDeviceBase
             ipBytes[i] = Convert.ToByte(ipChars[i]);
         }
 
-        if (!ZLGApiProvider.Instance.SetReference(UintDeviceType, device_index, CanIndex, (uint)CommandType.SetDestinationIP, ipBytes[0]))
+        if (!ZLGApiProvider.Instance.SetReference(UintDeviceType, device_index, CanIndex, CommandType.SetDestinationIP, ipBytes))
             throw new CanDeviceOperationException();
     }
 
     private void SetPort(uint device_index)
     {
         uint _port = Convert.ToUInt32(port);
-        byte[] ports = IntToBytes(_port, 4);
+        byte[] portBytes = IntToBytes(_port, 4);
 
-        if (!ZLGApiProvider.Instance.SetReference(UintDeviceType, device_index, CanIndex, (uint)CommandType.SetDestinationPort, ports[0]))
+        if (!ZLGApiProvider.Instance.SetReference(UintDeviceType, device_index, CanIndex, CommandType.SetDestinationPort, portBytes))
             throw new CanDeviceOperationException();
     }
 }

@@ -48,6 +48,16 @@ public abstract class CanDeviceBase : ICanDevice
 
     public abstract uint UintDeviceType { get; }
 
+    /// <summary>
+    /// 关闭设备
+    /// </summary>
+    public virtual void Close()
+    {
+        ZLGApiProvider.Instance.CloseDevice(UintDeviceType, DeviceIndex);
+
+        IsConnected = false;
+    }
+
     public virtual void Connect()
     {
         this.TryReadErrorInfo(out _);

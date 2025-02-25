@@ -1,19 +1,35 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using ZLGCanComm.Enums;
 using ZLGCanComm.Records;
 
 namespace ZLGCanComm.Api;
 
 public class ZLGApiWrapper : IZLGApi
 {
-    public bool OpenDevice(uint deviceType, uint deviceIndex, uint reserved)
+    public bool ClearBuffer(uint deviceType, uint deviceIndex, uint canIndex)
     {
-        return ZLGApi.VCI_OpenDevice(deviceType, deviceIndex, reserved) != 0;
+        return ZLGApi.VCI_ClearBuffer(deviceType, deviceIndex, canIndex) != 0;
     }
 
     public bool CloseDevice(uint deviceType, uint deviceIndex)
     {
         return ZLGApi.VCI_CloseDevice(deviceType, deviceIndex) != 0;
+    }
+
+    public uint GetReceiveNum(uint deviceType, uint deviceIndex, uint canIndex)
+    {
+        return ZLGApi.VCI_GetReceiveNum(deviceType, deviceIndex, canIndex);
+    }
+
+    public bool GetReference(uint deviceType, uint deviceIndex, uint canIndex, CommandType referenceType, byte[] data)
+    {
+        if (data.Length < 1)
+        {
+            return false;
+        }
+
+        return ZLGApi.VCI_GetReference(deviceType, deviceIndex, canIndex, (uint)referenceType, data) != 0;
     }
 
     public bool InitCAN(uint deviceType, uint deviceIndex, uint canIndex, InitConfig initConfig)
@@ -24,6 +40,11 @@ public class ZLGApiWrapper : IZLGApi
         return result;
     }
 
+    public bool OpenDevice(uint deviceType, uint deviceIndex, uint reserved)
+    {
+        return ZLGApi.VCI_OpenDevice(deviceType, deviceIndex, reserved) != 0;
+    }
+
     public bool ReadBoardInfo(uint deviceType, uint deviceIndex, [NotNullWhen(true)] out BoardInfo? boardInfo)
     {
         boardInfo = null;
@@ -32,19 +53,6 @@ public class ZLGApiWrapper : IZLGApi
         if (result)
         {
             boardInfo = DataConverter.Convert(pInfo);
-        }
-
-        return result;
-    }
-
-    public bool ReadErrInfo(uint deviceType, uint deviceIndex, uint canIndex, [NotNullWhen(true)] out ErrorInfo? errorInfo)
-    {
-        errorInfo = null;
-        var pErrInfo = DataConverter.Convert(new ErrorInfo());
-        var result = ZLGApi.VCI_ReadErrInfo(deviceType, deviceIndex, canIndex, ref pErrInfo) != 0;
-        if (result)
-        {
-            errorInfo = DataConverter.Convert(pErrInfo);
         }
 
         return result;
@@ -63,39 +71,17 @@ public class ZLGApiWrapper : IZLGApi
         return result;
     }
 
-    public bool GetReference(uint deviceType, uint deviceIndex, uint canIndex, uint RefType, byte pData)
+    public bool ReadErrInfo(uint deviceType, uint deviceIndex, uint canIndex, [NotNullWhen(true)] out ErrorInfo? errorInfo)
     {
-        return ZLGApi.VCI_GetReference(deviceType, deviceIndex, canIndex, RefType, ref pData) != 0;
-    }
+        errorInfo = null;
+        var pErrInfo = DataConverter.Convert(new ErrorInfo());
+        var result = ZLGApi.VCI_ReadErrInfo(deviceType, deviceIndex, canIndex, ref pErrInfo) != 0;
+        if (result)
+        {
+            errorInfo = DataConverter.Convert(pErrInfo);
+        }
 
-    public bool SetReference(uint deviceType, uint deviceIndex, uint canIndex, uint RefType, byte pData)
-    {
-        return ZLGApi.VCI_SetReference(deviceType, deviceIndex, canIndex, RefType, ref pData) != 0;
-    }
-
-    public uint GetReceiveNum(uint deviceType, uint deviceIndex, uint canIndex)
-    {
-        return ZLGApi.VCI_GetReceiveNum(deviceType, deviceIndex, canIndex);
-    }
-
-    public bool ClearBuffer(uint deviceType, uint deviceIndex, uint canIndex)
-    {
-        return ZLGApi.VCI_ClearBuffer(deviceType, deviceIndex, canIndex) != 0;
-    }
-
-    public bool StartCAN(uint deviceType, uint deviceIndex, uint canIndex)
-    {
-        return ZLGApi.VCI_StartCAN(deviceType, deviceIndex, canIndex) != 0;
-    }
-
-    public bool ResetCAN(uint deviceType, uint deviceIndex, uint canIndex)
-    {
-        return ZLGApi.VCI_ResetCAN(deviceType, deviceIndex, canIndex) != 0;
-    }
-
-    public uint Transmit(uint deviceType, uint deviceIndex, uint canIndex, CanObject[] sendObjects)
-    {
-        return ZLGApi.VCI_Transmit(deviceType, deviceIndex, canIndex, DataConverter.Convert(sendObjects), (uint)sendObjects.Length);
+        return result;
     }
 
     public CanObject[] Receive(uint deviceType, uint deviceIndex, uint canIndex, uint length, int waitTime)
@@ -125,5 +111,29 @@ public class ZLGApiWrapper : IZLGApi
         {
             Marshal.FreeHGlobal(pt);
         }
+    }
+
+    public bool ResetCAN(uint deviceType, uint deviceIndex, uint canIndex)
+    {
+        return ZLGApi.VCI_ResetCAN(deviceType, deviceIndex, canIndex) != 0;
+    }
+
+    public bool SetReference(uint deviceType, uint deviceIndex, uint canIndex, CommandType referenceType, byte[] data)
+    {
+        if (data.Length < 1)
+        {
+            return false;
+        }
+        return ZLGApi.VCI_SetReference(deviceType, deviceIndex, canIndex, (uint)referenceType, data) != 0;
+    }
+
+    public bool StartCAN(uint deviceType, uint deviceIndex, uint canIndex)
+    {
+        return ZLGApi.VCI_StartCAN(deviceType, deviceIndex, canIndex) != 0;
+    }
+
+    public uint Transmit(uint deviceType, uint deviceIndex, uint canIndex, CanObject[] sendObjects)
+    {
+        return ZLGApi.VCI_Transmit(deviceType, deviceIndex, canIndex, DataConverter.Convert(sendObjects), (uint)sendObjects.Length);
     }
 }
