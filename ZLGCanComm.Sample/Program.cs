@@ -18,6 +18,8 @@ const uint _NODE_ = 0X400;//CAN节点的下行命令帧ID的前缀;
         Debugger.Break();
         return;
     }
+    tcpCanDevice.LostConnection += LostConnectionHandler;//连接意外丢失时,处理程序
+    tcpCanDevice.ErrorOccurred += ErrorOccurredHandler;//连接之后、出现错误信息时，处理程序
 
     //读取
     var canObjects = tcpCanDevice.Receive();
@@ -42,6 +44,8 @@ const uint _NODE_ = 0X400;//CAN节点的下行命令帧ID的前缀;
     tcpCanDevice.Dispose();
 }
 
+
+
 /////Usb示例
 {
     var usbCan1Device = new UsbCan1Device();
@@ -53,7 +57,8 @@ const uint _NODE_ = 0X400;//CAN节点的下行命令帧ID的前缀;
         Debugger.Break();
         return;
     }
-
+    usbCan1Device.LostConnection += LostConnectionHandler;//连接意外丢失时,处理程序
+    usbCan1Device.ErrorOccurred += ErrorOccurredHandler;//连接之后、出现错误信息时，处理程序
     //读取
     var canObjects = usbCan1Device.Receive();
 
@@ -77,6 +82,16 @@ const uint _NODE_ = 0X400;//CAN节点的下行命令帧ID的前缀;
     usbCan1Device.Dispose();
 }
 
+
+void LostConnectionHandler(ZLGCanComm.Interfaces.ICanDevice obj)
+{
+    Console.WriteLine(obj);
+}
+
+void ErrorOccurredHandler(ErrorInfo obj)
+{
+    Console.WriteLine(obj);
+}
 void Received(CanObject[] canObjects)
 {
     foreach (var item in canObjects)

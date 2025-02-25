@@ -11,7 +11,7 @@
     <AssemblyVersion></AssemblyVersion>
     <FileVersion></FileVersion>
     <PackageIcon>ZLG.jpg</PackageIcon>
-    <Version>1.2.1.0</Version>
+    <Version>1.2.5.0</Version>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <Configurations>Debug;Release;Publish</Configurations>

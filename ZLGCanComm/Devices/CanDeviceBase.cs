@@ -10,6 +10,9 @@ namespace ZLGCanComm.Devices;
 public abstract class CanDeviceBase : ICanDevice
 {
     protected bool isDisposed;
+    protected bool isOpened;
+    private static readonly SynchronizationContext? _syncContext = SynchronizationContext.Current;
+    private CancellationTokenSource? _errorMonitoringCts;
 
     public CanDeviceBase(uint deviceIndex, uint canIndex)
     {
@@ -18,9 +21,18 @@ public abstract class CanDeviceBase : ICanDevice
     }
 
     /// <summary>
-    /// ZLGCAN系列接口卡信息的数据类型
+    /// 设备发生错误时将触发此事件。
+    /// <para>连接设备成功后将长轮询读取设备错误信息。</para>
+    /// <para>发生错误不会清空所有的订阅</para>
     /// </summary>
-    public BoardInfo? BoardInfo { get; private set; }
+    public event Action<ErrorInfo>? ErrorOccurred;
+
+    /// <summary>
+    /// 连接意外丢失，设备意外丢失。
+    /// <para>连接设备成功后将长轮询读取设备错误信息，读取错误信息失败将视为设备丢失。</para>
+    /// <para>设备丢失不会清空所有的订阅</para>
+    /// </summary>
+    public event Action<ICanDevice>? LostConnection;
 
     public uint CanIndex { get; }
 
@@ -32,9 +44,10 @@ public abstract class CanDeviceBase : ICanDevice
     public DeviceType DeviceType => (DeviceType)UintDeviceType;
 
     /// <summary>
-    /// 最近一次错误信息
+    /// 长轮询读取错误信息时，时间间隔,单位毫秒，默认设置为500。
+    /// <para>连接设备后将长轮询读取设备错误信息</para>
     /// </summary>
-    public ErrorInfo? ErrorInfo { get; private set; }
+    public int ErrorPollingInterval { get; set; } = 500;
 
     /// <summary>
     /// 是否已经连接
@@ -42,45 +55,47 @@ public abstract class CanDeviceBase : ICanDevice
     public bool IsConnected { get; protected set; }
 
     /// <summary>
-    /// 设备连接后，将间隔<see cref="CanPollingDelay"/>毫秒更新状态
+    /// 上次的错误状态
     /// </summary>
-    public CanControllerStatus? Status { get; private set; }
+    public ErrorInfo? LastErrorInfo { get; protected set; }
 
     public abstract uint UintDeviceType { get; }
 
-    /// <summary>
-    /// 关闭设备
-    /// </summary>
-    public virtual void Close()
-    {
-        ZLGApiProvider.Instance.CloseDevice(UintDeviceType, DeviceIndex);
-
-        IsConnected = false;
-    }
-
     public virtual void Connect()
     {
-        this.TryReadErrorInfo(out _);
-        this.TryReadBoardInfo(out _);
-        this.TryReadStatus(out _);
-
+        this.TryReadErrorInfo(out var errorInfo);
         if (!ZLGApiProvider.Instance.StartCAN(UintDeviceType, DeviceIndex, CanIndex))
             throw new CanDeviceOperationException();
+        LastErrorInfo = errorInfo;
         IsConnected = true;
+
+        _errorMonitoringCts = new CancellationTokenSource();
+        Task.Run(() => MonitorErrorsAsync(_errorMonitoringCts.Token));
+    }
+
+    /// <summary>
+    /// 关闭设备,断开连接。
+    /// <para>将清空所有的订阅</para>
+    /// </summary>
+    public virtual void Disconnect()
+    {
+        ZLGApiProvider.Instance.CloseDevice(UintDeviceType, DeviceIndex);
+        Unsubscribe();
+        _errorMonitoringCts?.Cancel();
+        isOpened = false;
+        IsConnected = false;
     }
 
     /// <summary>
     /// Dispose 当前实例
-    /// <para>连接将会断开，当前设备的监听将会全部清除</para>
+    /// <para>连接将会断开，当前设备的订阅将会全部清除</para>
     /// <para>Dispose之后将不允许任何操作</para>
     /// </summary>
     public void Dispose()
     {
         if (isDisposed)
             return;
-        Unsubscribe();
-        ZLGApiProvider.Instance.CloseDevice(UintDeviceType, DeviceIndex);
-        IsConnected = false;
+        Disconnect();
         isDisposed = true;
     }
 
@@ -114,8 +129,7 @@ public abstract class CanDeviceBase : ICanDevice
             throw new CanDeviceOperationException();
         }
 
-        BoardInfo = info;
-        return BoardInfo;
+        return info;
     }
 
     /// <summary>
@@ -134,8 +148,7 @@ public abstract class CanDeviceBase : ICanDevice
             throw new CanDeviceOperationException();
         }
 
-        ErrorInfo = errorInfo;
-        return ErrorInfo;
+        return errorInfo;
     }
 
     /// <summary>
@@ -154,8 +167,7 @@ public abstract class CanDeviceBase : ICanDevice
             throw new CanDeviceOperationException();
         }
 
-        Status = status;
-        return Status;
+        return status;
     }
 
     /// <summary>
@@ -199,6 +211,19 @@ public abstract class CanDeviceBase : ICanDevice
             }
         }
         return canObjects.ToArray();
+    }
+
+    /// <summary>
+    /// 复位，将会断开连接，所有订阅将会被取消
+    /// </summary>
+    public virtual void Reset()
+    {
+        if (isDisposed)
+            throw new InvalidOperationException();
+        ZLGApiProvider.Instance.ResetCAN(UintDeviceType, DeviceIndex, CanIndex);
+        Unsubscribe();
+        _errorMonitoringCts?.Cancel();
+        IsConnected = false;
     }
 
     /// <summary>
@@ -300,6 +325,66 @@ public abstract class CanDeviceBase : ICanDevice
     public void Unsubscribe()
     {
         CanListenerManager.Unsubscribe(this);
+    }
+
+    private async Task MonitorErrorsAsync(CancellationToken token)
+    {
+        while (!token.IsCancellationRequested)
+        {
+            try
+            {
+                var errorInfo = this.ReadErrorInfo();
+                if (errorInfo == LastErrorInfo)
+                    continue;
+
+                LastErrorInfo = errorInfo;
+                if (errorInfo.ErrorCode == 0x00000100)//设备已经打开
+                {
+                    continue;
+                }
+                OnErrorOccurred(errorInfo);
+
+                if (errorInfo.ErrorCode == 0x00001000)//此设备不存在
+                {
+                    OnLostConnection();
+                }
+            }
+            catch (CanDeviceOperationException)
+            {
+                OnLostConnection();
+            }
+            catch (InvalidOperationException)
+            {
+                break;
+            }
+
+            await Task.Delay(ErrorPollingInterval, token); // 读取 `ErrorPollingInterval` 作为轮询间隔
+        }
+    }
+
+    private void OnErrorOccurred(ErrorInfo errorInfo)
+    {
+        if (_syncContext != null)
+        {
+            _syncContext.Post(_ => ErrorOccurred?.Invoke(errorInfo), null);
+        }
+        else
+        {
+            ErrorOccurred?.Invoke(errorInfo);
+        }
+    }
+
+    private void OnLostConnection()
+    {
+        IsConnected = false;
+        if (_syncContext != null)
+        {
+            _syncContext.Post(_ => LostConnection?.Invoke(this), null);
+        }
+        else
+        {
+            LostConnection?.Invoke(this);
+        }
     }
 
     /// <summary>

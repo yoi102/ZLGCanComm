@@ -94,7 +94,7 @@ public class ZLGApiWrapper : IZLGApi
         {
             var receivedCount = ZLGApi.VCI_Receive(deviceType, deviceIndex, canIndex, pt, length, waitTime);
             if (receivedCount == 0)
-                return []; // 无数据时直接返回，避免不必要的计算
+                return []; // 无数据
 
             CanObject[] result = new CanObject[receivedCount]; // 预分配数组，避免 List<T> 额外开销
 

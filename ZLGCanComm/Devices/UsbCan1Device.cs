@@ -7,7 +7,7 @@ namespace ZLGCanComm.Devices;
 public class UsbCan1Device : CanDeviceBase
 {
     private readonly InitConfig initConfig;
-    private bool isOpened;
+    private new bool isOpened;
 
     /// <summary>
     /// 适用于VCI_USBCAN1

@@ -8,7 +8,6 @@ public class TcpCanDevice : CanDeviceBase
 {
     private readonly string ip;
     private readonly string port;
-    private bool isOpened;
 
     /// <summary>
     /// 适用于VCI_CANETTCP类型的设备

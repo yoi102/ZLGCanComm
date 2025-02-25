@@ -6,9 +6,19 @@ namespace ZLGCanComm.Interfaces;
 public interface ICanDevice : IDisposable
 {
     /// <summary>
-    /// ZLGCAN系列接口卡信息的数据类型
+    /// 设备发生错误时将触发此事件。
+    /// <para>连接设备成功后将长轮询读取设备错误信息。</para>
+    /// <para>连接时会读取一次ErrorInfo，长轮询读取的ErrorInfo不等于连接时的ErrorInfo且错误码不为0x00000100时，将触发此事件。</para>
+    /// <para>发生错误不会清空所有的订阅</para>
     /// </summary>
-    BoardInfo? BoardInfo { get; }
+    event Action<ErrorInfo>? ErrorOccurred;
+
+    /// <summary>
+    /// 连接意外丢失，设备意外丢失。
+    /// <para>连接设备成功后将长轮询读取设备错误信息，读取错误信息失败或者错误码为0x00001000时，将视为设备丢失。</para>
+    /// <para>设备丢失不会清空所有的订阅</para>
+    /// </summary>
+    event Action<ICanDevice>? LostConnection;
 
     /// <summary>
     /// CAN 通道号
@@ -26,9 +36,10 @@ public interface ICanDevice : IDisposable
     DeviceType DeviceType { get; }
 
     /// <summary>
-    /// 最近一次错误信息
+    /// 长轮询读取错误信息时，时间间隔,单位毫秒，默认设置为500。
+    /// <para>连接设备后将长轮询读取设备错误信息</para>
     /// </summary>
-    ErrorInfo? ErrorInfo { get; }
+    int ErrorPollingInterval { get; set; }
 
     /// <summary>
     /// 是否已经连接
@@ -36,14 +47,10 @@ public interface ICanDevice : IDisposable
     bool IsConnected { get; }
 
     /// <summary>
-    /// 状态
+    /// 记录上次错误状态
+    /// <para>连接时，将读取一次ErrorInfo，之后长轮询中如读取的值不同时将更新</para>
     /// </summary>
-    CanControllerStatus? Status { get; }
-
-    /// <summary>
-    /// 关闭设备
-    /// </summary>
-    void Close();
+    ErrorInfo? LastErrorInfo { get; }
 
     /// <summary>
     /// 连接设备
@@ -52,6 +59,11 @@ public interface ICanDevice : IDisposable
     /// <exception cref="CanDeviceOperationException">若ZLGCan的Api返回值为0时，将抛出此异常</exception>
     void Connect();
 
+    /// <summary>
+    /// 关闭设备,断开连接。
+    /// <para>将清空所有的订阅</para>
+    /// </summary>
+    void Disconnect();
     /// <summary>
     /// 获取接收缓冲区中，接收到但尚未被读取的帧数量
     /// </summary>
@@ -90,6 +102,12 @@ public interface ICanDevice : IDisposable
     /// <returns>反回所读取到的数据，当控制器没有数据可读时、 CanObject[0]</returns>
     /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
     CanObject[] Receive(int waitTime = 0);
+
+    /// <summary>
+    /// 复位，将会断开连接
+    /// <para>将清空所有的订阅</para>
+    /// </summary>
+    void Reset();
 
     /// <summary>
     /// 注册监听设备。必须连接后再注册

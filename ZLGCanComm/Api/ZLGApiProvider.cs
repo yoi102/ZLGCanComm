@@ -2,8 +2,6 @@
 
 public sealed class ZLGApiProvider
 {
-
-
     private static IZLGApi _instance = new ZLGApiWrapper();
 
     public static IZLGApi Instance
