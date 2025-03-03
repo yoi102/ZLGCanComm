@@ -2,7 +2,6 @@
 using ZLGCanComm.Enums;
 using ZLGCanComm.Extensions;
 using ZLGCanComm.Interfaces;
-using ZLGCanComm.ListenerManager;
 using ZLGCanComm.Records;
 
 namespace ZLGCanComm.Devices;
@@ -23,13 +22,13 @@ public abstract class CanDeviceBase : ICanDevice
     /// <summary>
     /// 设备发生错误时将触发此事件。
     /// <para>连接设备成功后将长轮询读取设备错误信息。</para>
+    /// <para>连接时会读取一次ErrorInfo，长轮询读取的ErrorInfo不等于连接时的ErrorInfo且错误码不为0x00000100时，将触发此事件。</para>
     /// <para>发生错误不会清空所有的订阅</para>
-    /// </summary>
     public event Action<ErrorInfo>? ErrorOccurred;
 
     /// <summary>
     /// 连接意外丢失，设备意外丢失。
-    /// <para>连接设备成功后将长轮询读取设备错误信息，读取错误信息失败将视为设备丢失。</para>
+    /// <para>连接设备成功后将长轮询读取设备错误信息，读取错误信息失败或者错误码为0x00001000时，将视为设备丢失。</para>
     /// <para>设备丢失不会清空所有的订阅</para>
     /// </summary>
     public event Action<ICanDevice>? LostConnection;
@@ -80,7 +79,7 @@ public abstract class CanDeviceBase : ICanDevice
     public virtual void Disconnect()
     {
         ZLGApiProvider.Instance.CloseDevice(UintDeviceType, DeviceIndex);
-        Unsubscribe();
+        this.Unsubscribe();
         _errorMonitoringCts?.Cancel();
         isOpened = false;
         IsConnected = false;
@@ -221,35 +220,9 @@ public abstract class CanDeviceBase : ICanDevice
         if (isDisposed)
             throw new InvalidOperationException();
         ZLGApiProvider.Instance.ResetCAN(UintDeviceType, DeviceIndex, CanIndex);
-        Unsubscribe();
+        this.Unsubscribe();
         _errorMonitoringCts?.Cancel();
         IsConnected = false;
-    }
-
-    /// <summary>
-    /// 注册监听设备。必须连接后再注册
-    /// <para>当设备有未读取的未被读取的帧数时，将触发 <paramref name="onReceived"/>。</para>
-    /// <para>不允许多次注册。仅当前实例和入参的 <paramref name="pollingTimeout"/>，<paramref name="waitTime"/> 一致时，视为同一个监听者</para>
-    /// <para>同一个监听者第二次之后的注册将不会有任何动作。</para>
-    /// <para>允许注册多个 <paramref name="onReceived"/> 回调，同一个监听者同一个回调多次注册时，仅第一次有效。</para>
-    /// </summary>
-    /// <param name="onReceived">当CAN 通道的接收缓冲区中，存在接收到但尚未被读取的帧数时，将触发此回调</param>
-    /// <param name="pollingTimeout">长轮询的Delay时长、单位毫秒,默认为一百毫秒</param>
-    /// <param name="waitTime">读取设备用的 api的入参,缓冲区无数据，函数阻塞等待时间，以毫秒为单位。若为-1 则表示无超时，一直等待。</param>
-    /// <exception cref="InvalidOperationException">该实例被 Dispose后，或处于未连接状态时，调用此方法将抛出此异常</exception>
-    public virtual void Subscribe(Action<CanObject[]> onReceived, int pollingTimeout = 100, int waitTime = 0)
-    {
-        if (isDisposed)
-            throw new InvalidOperationException();
-        if (!IsConnected)
-            throw new InvalidOperationException();
-        var canListenerConfig = new CanListenerConfig()
-        {
-            Device = this,
-            PollingTimeout = pollingTimeout,
-            WaitTime = waitTime
-        };
-        CanListenerManager.Subscribe(canListenerConfig, onReceived);
     }
 
     /// <summary>
@@ -299,32 +272,6 @@ public abstract class CanDeviceBase : ICanDevice
         };
 
         return Transmit(canObject) == 1;
-    }
-
-    /// <summary>
-    /// 取消监听设备。
-    /// <para>仅当前实例和入参的 <paramref name="pollingTimeout"/>，<paramref name="waitTime"/> 一致时，视为同一个监听者</para>
-    /// </summary>
-    /// <param name="onReceived">当CAN 通道的接收缓冲区中，存在接收到但尚未被读取的帧数时，将触发此回调</param>
-    /// <param name="pollingTimeout">长轮询的Delay时长、单位毫秒,默认为一百毫秒</param>
-    /// <param name="waitTime">读取设备用的 api的入参,缓冲区无数据，函数阻塞等待时间，以毫秒为单位。若为-1 则表示无超时，一直等待。</param>
-    public virtual void Unsubscribe(Action<CanObject[]> onReceived, int pollingTimeout = 100, int waitTime = 0)
-    {
-        var record = new CanListenerConfig()
-        {
-            Device = this,
-            PollingTimeout = pollingTimeout,
-            WaitTime = waitTime
-        };
-        CanListenerManager.Unsubscribe(record, onReceived);
-    }
-
-    /// <summary>
-    /// 取消当前设备的所有监听
-    /// </summary>
-    public void Unsubscribe()
-    {
-        CanListenerManager.Unsubscribe(this);
     }
 
     private async Task MonitorErrorsAsync(CancellationToken token)
